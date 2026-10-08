@@ -4,8 +4,9 @@ import { z } from "zod";
 import { ClinicalAnalysis } from "../../../lib/clinical-analysis";
 import { clinicalCaseSchema } from "../../../lib/clinical-case";
 
-const defaultModel = "gemini-2.5-flash";
-const clinicalAnalysisJsonSchema = z.toJSONSchema(ClinicalAnalysis) as Record<string, unknown>;
+const defaultModel = "gemini-3.8-flash";
+const rawSchema = z.toJSONSchema(ClinicalAnalysis) as Record<string, unknown>;
+const clinicalAnalysisJsonSchema = { ...rawSchema };
 delete clinicalAnalysisJsonSchema.$schema;
 const clinicalSystemInstruction = `You are DentAI, a clinical decision-support copilot for licensed dentists.
 
@@ -40,17 +41,30 @@ export async function POST(request: Request) {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
   try {
-    const response = await ai.models.generateContent({
-      model,
-      contents: JSON.stringify(caseWithoutImage),
-      config: {
-        systemInstruction: clinicalSystemInstruction,
-        responseMimeType: "application/json",
-        responseJsonSchema: clinicalAnalysisJsonSchema,
-      },
-    });
+    let response: { text?: string | null } | undefined;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        response = await ai.models.generateContent({
+          model,
+          contents: JSON.stringify(caseWithoutImage),
+          config: {
+            systemInstruction: clinicalSystemInstruction,
+            responseMimeType: "application/json",
+            responseJsonSchema: clinicalAnalysisJsonSchema,
+          },
+        });
+        break;
+      } catch (err: unknown) {
+        const status = typeof err === "object" && err !== null && "status" in err ? (err as { status?: number }).status : undefined;
+        if ((status === 503 || status === 429) && attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1500 * (attempt + 1)));
+          continue;
+        }
+        throw err;
+      }
+    }
 
-    if (!response.text) {
+    if (!response?.text) {
       return publicError("The AI returned an empty assessment. Please try again.", 502);
     }
 
@@ -67,7 +81,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(analysisResult.data);
-  } catch {
+  } catch (error) {
+    console.error("[DentAI] Gemini API error:", error);
     return publicError("AI analysis is temporarily unavailable. Please try again.", 502);
   }
 }
