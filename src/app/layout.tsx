@@ -13,8 +13,25 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://dentarith.me"),
   title: "Dentarith | Clinical Intelligence for Dentistry",
-  description: "Dentarith Clinical Copilot — AI-powered clinical decision-support designed to assist licensed dental practitioners.",
+  description:
+    "Dentarith Clinical Copilot helps dentists structure clinical findings, explore diagnostic possibilities, identify missing information, and review treatment considerations with explainable AI-assisted clinical reasoning.",
+  openGraph: {
+    title: "Dentarith | Clinical Intelligence for Dentistry",
+    description:
+      "Dentarith Clinical Copilot helps dentists structure clinical findings, explore diagnostic possibilities, identify missing information, and review treatment considerations with explainable AI-assisted clinical reasoning.",
+    url: "https://dentarith.me",
+    siteName: "Dentarith",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Dentarith | Clinical Intelligence for Dentistry",
+    description:
+      "Dentarith Clinical Copilot helps dentists structure clinical findings, explore diagnostic possibilities, identify missing information, and review treatment considerations with explainable AI-assisted clinical reasoning.",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

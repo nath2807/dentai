@@ -12,7 +12,7 @@ export default function ComingSoon({ activeItem, title, description }: { activeI
           <span className="flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 text-teal-700"><Icon name="spark" size={22} /></span>
           <h2 className="mt-4 text-base font-semibold text-slate-950">This workspace is coming next</h2>
           <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">The MVP keeps this area intentionally lightweight while the clinical case workflow is being validated.</p>
-          <Link href="/" className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"><Icon name="dashboard" size={15} />Back to Dashboard</Link>
+          <Link href="/cases" className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800"><Icon name="folder" size={15} />Back to Cases</Link>
         </div>
       </div>
     </AppShell>

@@ -28,7 +28,6 @@ export function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
 }
 
 const navItems = [
-  { label: "Dashboard", href: "/", icon: "dashboard" as IconName },
   { label: "Clinical Cases", href: "/cases", icon: "folder" as IconName },
   { label: "New Case", href: "/cases/new", icon: "plus" as IconName },
   { label: "Reports", href: "/reports", icon: "report" as IconName },
@@ -40,7 +39,7 @@ export function AppShell({ children, activeItem }: { children: ReactNode; active
     <div className="min-h-screen bg-[#f7f9fb] text-slate-900">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="flex h-20 items-center border-b border-slate-100 px-7">
-          <Link href="/" className="flex items-center gap-3" aria-label="Dentarith dashboard">
+          <Link href="/" className="flex items-center gap-3" aria-label="Dentarith home">
             <Logo />
             <div className="flex flex-col">
               <span className="text-lg font-bold tracking-tight text-slate-950 leading-none">Dentarith</span>
@@ -49,7 +48,7 @@ export function AppShell({ children, activeItem }: { children: ReactNode; active
           </Link>
         </div>
         <nav className="flex-1 px-4 py-7" aria-label="Primary navigation">
-          <p className="px-3 pb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Workspace</p>
+          <p className="px-3 pb-3 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Clinical Workspace</p>
           <div className="space-y-1">
             {navItems.map((item) => (
               <Link key={item.label} href={item.href} className={`flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition ${activeItem === item.label ? "bg-teal-50 text-teal-800" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"}`}>
@@ -57,6 +56,12 @@ export function AppShell({ children, activeItem }: { children: ReactNode; active
                 {item.label}
               </Link>
             ))}
+          </div>
+          <div className="mt-8 pt-4 border-t border-slate-100 px-3">
+            <Link href="/" className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-teal-700 transition">
+              <span>←</span>
+              <span>Back to Public Site</span>
+            </Link>
           </div>
         </nav>
         <div className="m-4 rounded-xl bg-slate-50 p-4 border border-slate-200/60">
