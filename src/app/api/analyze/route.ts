@@ -4,7 +4,7 @@ import { z } from "zod";
 import { ClinicalAnalysis } from "../../../lib/clinical-analysis";
 import { clinicalCaseSchema } from "../../../lib/clinical-case";
 
-const defaultModel = "gemini-3.8-flash";
+const defaultModel = "gemini-3.5-flash";
 const rawSchema = z.toJSONSchema(ClinicalAnalysis) as Record<string, unknown>;
 const clinicalAnalysisJsonSchema = { ...rawSchema };
 delete clinicalAnalysisJsonSchema.$schema;
