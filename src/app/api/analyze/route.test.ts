@@ -9,31 +9,54 @@ vi.mock("@google/genai", () => ({
 
 const validAnalysis = {
   summary: "Findings suggest a localized pulpal process.",
-  problemList: ["Cold sensitivity"],
-  possibleDiagnoses: [{ diagnosis: "Reversible pulpitis", likelihood: "moderate", supportingFindings: ["Cold sensitivity"] }],
-  differentialDiagnosis: ["Dentin hypersensitivity"],
-  missingInformation: ["Duration of pain after stimulus"],
-  suggestedInvestigations: ["Complete pulp vitality testing"],
-  treatmentConsiderations: ["Review the tooth before treatment planning"],
+  reportedInformation: ["Patient reports cold sensitivity for 3 days"],
+  observedFindings: ["Tooth 36 deep carious lesion", "Tenderness on percussion"],
+  inferredFindings: ["Pulpal inflammation with periapical involvement suspected"],
+  problemList: ["Cold sensitivity", "Deep caries"],
+  possibleDiagnoses: [
+    {
+      diagnosis: "Reversible pulpitis",
+      likelihood: "moderate" as const,
+      supportingFindings: ["Cold sensitivity"],
+      contradictingFindings: [],
+      evidenceType: "clinical findings",
+      reasoning: "Transient response consistent with reversible pulpal inflammation.",
+    },
+  ],
+  differentialDiagnosis: [
+    {
+      diagnosis: "Dentin hypersensitivity",
+      whyConsidered: "Cold sensitivity complaint",
+      supportingFindings: ["Cold sensitivity"],
+      missingEvidence: ["Pulp testing with lingering evaluation"],
+    },
+  ],
+  missingInformation: ["Duration of pain after stimulus", "Periapical radiograph"],
+  suggestedInvestigations: ["Complete pulp vitality testing", "Periapical radiograph"],
+  treatmentConsiderations: ["Review the tooth before treatment planning", "Caries excavation"],
   redFlags: [],
-  uncertainty: "The supplied findings are limited.",
+  uncertainty: ["Radiographic and objective sensibility confirmation unavailable"],
+  safetyNotes: ["A licensed dentist must review all suggestions before definitive action."],
 };
 
-const clinicalCase = normalizeClinicalCase({
-  caseId: "CASE-001",
-  age: "34",
-  sex: "Female",
-  complaint: "Sensitivity on the lower left",
-  duration: "3 days",
-  symptoms: "Cold sensitivity",
-  region: "Tooth 36",
-  pulpal: "Tender to cold",
-}, {
-  fileName: "scan.png",
-  mimeType: "image/png",
-  size: 100,
-  dataUrl: "data:image/png;base64,secret-image-data",
-});
+const clinicalCase = normalizeClinicalCase(
+  {
+    caseId: "CASE-001",
+    age: "34",
+    sex: "Female",
+    complaint: "Sensitivity on the lower left",
+    duration: "3 days",
+    symptoms: "Cold sensitivity",
+    region: "Tooth 36",
+    pulpal: "Tender to cold",
+  },
+  {
+    fileName: "scan.png",
+    mimeType: "image/png",
+    size: 100,
+    dataUrl: "data:image/png;base64,secret-image-data",
+  }
+);
 
 const originalApiKey = process.env.GEMINI_API_KEY;
 
@@ -50,24 +73,43 @@ describe("POST /api/analyze", () => {
 
   it("returns a safe error when the API key is missing", async () => {
     delete process.env.GEMINI_API_KEY;
-    const response = await POST(new Request("http://localhost/api/analyze", { method: "POST", body: JSON.stringify(clinicalCase) }));
+    const response = await POST(
+      new Request("http://localhost/api/analyze", {
+        method: "POST",
+        body: JSON.stringify(clinicalCase),
+      })
+    );
 
     expect(response.status).toBe(503);
-    expect(await response.json()).toEqual({ error: "AI analysis is temporarily unavailable. Please contact your administrator." });
+    expect(await response.json()).toEqual({
+      error: "AI analysis is temporarily unavailable. Please contact your administrator.",
+    });
     expect(generateContent).not.toHaveBeenCalled();
   });
 
   it("handles invalid Gemini JSON without exposing internals", async () => {
     generateContent.mockResolvedValue({ text: "not-json" });
-    const response = await POST(new Request("http://localhost/api/analyze", { method: "POST", body: JSON.stringify(clinicalCase) }));
+    const response = await POST(
+      new Request("http://localhost/api/analyze", {
+        method: "POST",
+        body: JSON.stringify(clinicalCase),
+      })
+    );
 
     expect(response.status).toBe(502);
-    expect(await response.json()).toEqual({ error: "The AI returned an invalid assessment. Please try again." });
+    expect(await response.json()).toEqual({
+      error: "The AI returned an invalid assessment. Please try again.",
+    });
   });
 
   it("returns and validates a successful structured analysis", async () => {
     generateContent.mockResolvedValue({ text: JSON.stringify(validAnalysis) });
-    const response = await POST(new Request("http://localhost/api/analyze", { method: "POST", body: JSON.stringify(clinicalCase) }));
+    const response = await POST(
+      new Request("http://localhost/api/analyze", {
+        method: "POST",
+        body: JSON.stringify(clinicalCase),
+      })
+    );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(validAnalysis);
@@ -75,5 +117,20 @@ describe("POST /api/analyze", () => {
     expect(request.config.responseMimeType).toBe("application/json");
     expect(request.config.responseJsonSchema).toBeDefined();
     expect(request.contents).not.toContain("secret-image-data");
+  });
+
+  it("ensures radiograph data is excluded from request payload", async () => {
+    generateContent.mockResolvedValue({ text: JSON.stringify(validAnalysis) });
+    await POST(
+      new Request("http://localhost/api/analyze", {
+        method: "POST",
+        body: JSON.stringify(clinicalCase),
+      })
+    );
+
+    const request = generateContent.mock.calls[0][0];
+    expect(request.contents).not.toContain("secret-image-data");
+    const parsedPayload = JSON.parse(request.contents);
+    expect(parsedPayload.radiograph).toBeNull();
   });
 });

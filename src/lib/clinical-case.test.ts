@@ -18,7 +18,7 @@ function makeCase(overrides: Record<string, unknown> = {}) {
 }
 
 describe("clinical case validation", () => {
-  it("accepts a valid case", () => {
+  it("accepts a valid case with basic fields (backward compatibility)", () => {
     expect(clinicalCaseSchema.safeParse(makeCase()).success).toBe(true);
   });
 
@@ -31,7 +31,7 @@ describe("clinical case validation", () => {
   });
 
   it("requires a clinical finding", () => {
-    expect(clinicalCaseSchema.safeParse(makeCase({ region: "", pulpal: "" })).success).toBe(false);
+    expect(clinicalCaseSchema.safeParse(makeCase({ region: "", pulpal: "", toothNumber: "" })).success).toBe(false);
   });
 
   it("rejects invalid radiograph types and oversized radiographs", () => {
@@ -39,10 +39,38 @@ describe("clinical case validation", () => {
     expect(validateRadiograph({ name: "scan.png", type: "image/png", size: 10 * 1024 * 1024 + 1 })).toContain("10 MB");
   });
 
-  it("generates the structured ClinicalCase object", () => {
-    const clinicalCase = makeCase();
+  it("generates the structured ClinicalCase object with legacy and new fields", () => {
+    const clinicalCase = makeCase({
+      toothNumber: "36",
+      arch: "mandibular",
+      quadrant: "Lower Left (Q3)",
+      coldTest: "Lingering >30s",
+      percussion: "Tender / Positive (+)",
+      probingDepth: "Within normal limits (<=3mm)",
+      caries: "Deep carious lesion",
+      systemicConditions: "Hypertension",
+      relevantNegativeFindings: "No swelling",
+    });
     expect(clinicalCase.caseInformation).toEqual({ caseId: "CASE-001", age: 34, sex: "Female" });
     expect(clinicalCase.historyOfPresentingComplaint.duration).toBe("3 days");
-    expect(clinicalCase.clinicalExamination.toothOrRegion).toBe("Tooth 36");
+    expect(clinicalCase.clinicalExamination.toothOrRegion).toContain("36");
+    expect(clinicalCase.toothAssessment?.arch).toBe("mandibular");
+    expect(clinicalCase.pulpalAssessment?.coldTest).toBe("Lingering >30s");
+    expect(clinicalCase.periapicalAssessment?.percussion).toBe("Tender / Positive (+)");
+    expect(clinicalCase.relevantNegatives?.relevantNegativeFindings).toBe("No swelling");
+  });
+
+  it("allows all new structured assessment fields to be optional", () => {
+    const minimal = makeCase();
+    const parsed = clinicalCaseSchema.safeParse(minimal);
+    expect(parsed.success).toBe(true);
+  });
+
+  it("rejects invalid enum values for structured fields like arch", () => {
+    const base = makeCase();
+    // @ts-expect-error testing invalid enum
+    base.toothAssessment = { arch: "invalid-arch" };
+    const parsed = clinicalCaseSchema.safeParse(base);
+    expect(parsed.success).toBe(false);
   });
 });

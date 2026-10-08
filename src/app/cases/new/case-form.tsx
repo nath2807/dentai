@@ -14,18 +14,8 @@ import {
 import type { ZodIssue } from "zod";
 import type { ClinicalAnalysis } from "@/lib/clinical-analysis";
 
-type Field = { label: string; name: string; placeholder?: string; type?: "input" | "textarea" | "select" };
 type Draft = { values: FormValues; radiograph: Radiograph | null };
 const draftKey = "dentai-clinical-case-draft";
-
-const sections: { title: string; description: string; fields: Field[] }[] = [
-  { title: "Case Information", description: "Start with the basic identifiers for this consultation.", fields: [{ label: "Case ID", name: "caseId", placeholder: "e.g. CASE-001" }, { label: "Age", name: "age", placeholder: "Years" }, { label: "Sex", name: "sex", type: "select" }] },
-  { title: "Chief Complaint", description: "What is the patient’s primary concern today?", fields: [{ label: "Chief complaint", name: "complaint", placeholder: "Describe the patient’s main concern in their own words...", type: "textarea" }] },
-  { title: "History of Presenting Complaint", description: "Document the timeline and behavior of the presenting concern.", fields: [{ label: "Duration", name: "duration", placeholder: "e.g. 3 days" }, { label: "Onset", name: "onset", placeholder: "Sudden, gradual, recurrent..." }, { label: "Symptoms", name: "symptoms", placeholder: "Pain, swelling, sensitivity..." }, { label: "Aggravating factors", name: "aggravating", placeholder: "What makes it worse?" }, { label: "Relieving factors", name: "relieving", placeholder: "What provides relief?" }] },
-  { title: "Medical History", description: "Record relevant systemic conditions and medications.", fields: [{ label: "Medical conditions", name: "conditions", placeholder: "Include relevant diagnoses..." }, { label: "Current medications", name: "medications", placeholder: "Medication and dosage..." }, { label: "Allergies", name: "allergies", placeholder: "Known allergies or sensitivities..." }] },
-  { title: "Dental History", description: "Add relevant treatment history and oral hygiene context.", fields: [{ label: "Previous treatment", name: "previousTreatment", placeholder: "Relevant previous dental care..." }, { label: "Previous extractions", name: "extractions", placeholder: "Details, dates, complications..." }, { label: "Endodontic treatment", name: "endo", placeholder: "Teeth and treatment details..." }, { label: "Prosthetic treatment", name: "prosthetic", placeholder: "Crowns, bridges, dentures..." }, { label: "Orthodontic treatment", name: "ortho", placeholder: "Current or previous treatment..." }, { label: "Oral hygiene", name: "hygiene", placeholder: "Home care and hygiene observations..." }] },
-  { title: "Clinical Examination", description: "Structure your objective findings for a complete clinical picture.", fields: [{ label: "Tooth / region", name: "region", placeholder: "e.g. Tooth 36 / lower left" }, { label: "Extraoral findings", name: "extraoral", placeholder: "Facial asymmetry, swelling, lymph nodes..." }, { label: "Intraoral findings", name: "intraoral", placeholder: "Mucosa, swelling, sinus tract..." }, { label: "Hard tissue findings", name: "hardTissue", placeholder: "Caries, fracture, restoration..." }, { label: "Soft tissue findings", name: "softTissue", placeholder: "Lesion, color, texture..." }, { label: "Periodontal findings", name: "periodontal", placeholder: "Probing depths, bleeding, recession..." }, { label: "Pulpal findings", name: "pulpal", placeholder: "Pulpal diagnosis observations..." }, { label: "Percussion", name: "percussion", placeholder: "Positive, negative, or details..." }, { label: "Palpation", name: "palpation", placeholder: "Positive, negative, or details..." }, { label: "Mobility", name: "mobility", placeholder: "Grade or observations..." }, { label: "Probing", name: "probing", placeholder: "Pocket depths and findings..." }, { label: "Vitality tests", name: "vitality", placeholder: "Test used and response..." }] },
-];
 
 export default function CaseForm() {
   const router = useRouter();
@@ -36,6 +26,11 @@ export default function CaseForm() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [draftMessage, setDraftMessage] = useState("");
 
+  // Progressive disclosure toggles
+  const [painPresent, setPainPresent] = useState<string>("yes");
+  const [showPeriodontal, setShowPeriodontal] = useState<boolean>(false);
+  const [showDentalHistory, setShowDentalHistory] = useState<boolean>(false);
+
   useEffect(() => {
     const saved = window.localStorage.getItem(draftKey);
     if (!saved || !formRef.current) return;
@@ -44,9 +39,18 @@ export default function CaseForm() {
       const draft = JSON.parse(saved) as Draft;
       Object.entries(draft.values).forEach(([name, value]) => {
         const field = formRef.current?.elements.namedItem(name);
-        if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement || field instanceof HTMLSelectElement) field.value = value;
+        if (
+          field instanceof HTMLInputElement ||
+          field instanceof HTMLTextAreaElement ||
+          field instanceof HTMLSelectElement
+        ) {
+          field.value = value;
+        }
       });
       timer = window.setTimeout(() => {
+        if (draft.values.painPresent) {
+          setPainPresent(draft.values.painPresent);
+        }
         if (draft.radiograph) {
           setRadiograph(draft.radiograph);
           setFileName(draft.radiograph.fileName);
@@ -61,15 +65,30 @@ export default function CaseForm() {
 
   function readValues(): FormValues {
     const formData = new FormData(formRef.current ?? undefined);
-    return Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])) as FormValues;
+    return Object.fromEntries(
+      Array.from(formData.entries()).map(([key, value]) => [
+        key,
+        typeof value === "string" ? value : "",
+      ])
+    ) as FormValues;
   }
 
   function setValidationErrors(issues: ZodIssue[]) {
     const nextErrors: Record<string, string> = {};
     issues.forEach((issue) => {
       const path = issue.path.join(".");
-      const fieldName = path === "caseInformation.caseId" ? "caseId" : path === "caseInformation.age" ? "age" : path === "caseInformation.sex" ? "sex" : path === "historyOfPresentingComplaint.duration" ? "duration" : path === "historyOfPresentingComplaint.symptoms" ? "symptoms" : path === "clinicalExamination.toothOrRegion" ? "region" : "";
-      if (fieldName && !nextErrors[fieldName]) nextErrors[fieldName] = issue.message;
+      let fieldName = "";
+      if (path === "caseInformation.caseId") fieldName = "caseId";
+      else if (path === "caseInformation.age") fieldName = "age";
+      else if (path === "caseInformation.sex") fieldName = "sex";
+      else if (path === "chiefComplaint") fieldName = "complaint";
+      else if (path === "historyOfPresentingComplaint.duration") fieldName = "duration";
+      else if (path === "historyOfPresentingComplaint.symptoms") fieldName = "symptoms";
+      else if (path === "clinicalExamination.toothOrRegion") fieldName = "toothNumber";
+
+      if (fieldName && !nextErrors[fieldName]) {
+        nextErrors[fieldName] = issue.message;
+      }
     });
     setErrors(nextErrors);
     const firstField = Object.keys(nextErrors)[0];
@@ -97,7 +116,12 @@ export default function CaseForm() {
     }
     const reader = new FileReader();
     reader.onload = () => {
-      const nextRadiograph: Radiograph = { fileName: file.name, mimeType: file.type as Radiograph["mimeType"], size: file.size, dataUrl: typeof reader.result === "string" ? reader.result : undefined };
+      const nextRadiograph: Radiograph = {
+        fileName: file.name,
+        mimeType: file.type as Radiograph["mimeType"],
+        size: file.size,
+        dataUrl: typeof reader.result === "string" ? reader.result : undefined,
+      };
       setRadiograph(nextRadiograph);
       setFileName(file.name);
       setErrors((current) => ({ ...current, radiograph: "" }));
@@ -107,17 +131,22 @@ export default function CaseForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const clinicalCase = normalizeClinicalCase(readValues(), radiograph);
+    const values = readValues();
+    const clinicalCase = normalizeClinicalCase(values, radiograph);
     const result = clinicalCaseSchema.safeParse(clinicalCase);
+
     if (!result.success) {
       setIsAnalyzing(false);
       setValidationErrors(result.error.issues);
       return;
     }
+
     setErrors({});
     setIsAnalyzing(true);
     window.localStorage.removeItem(draftKey);
-    const requestCase = JSON.parse(JSON.stringify(result.data, (key, value) => key === "dataUrl" ? undefined : value)) as typeof result.data;
+    const requestCase = JSON.parse(
+      JSON.stringify(result.data, (key, value) => (key === "dataUrl" ? undefined : value))
+    ) as typeof result.data;
 
     try {
       const response = await fetch("/api/analyze", {
@@ -125,55 +154,683 @@ export default function CaseForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestCase),
       });
-      const payload = await response.json() as ClinicalAnalysis | { error?: string };
+      const payload = (await response.json()) as ClinicalAnalysis | { error?: string };
       if (!response.ok) {
-        throw new Error("error" in payload && payload.error ? payload.error : "Analysis could not be completed.");
+        throw new Error(
+          "error" in payload && payload.error
+            ? payload.error
+            : "Analysis could not be completed."
+        );
       }
       window.sessionStorage.setItem("dentai-clinical-analysis", JSON.stringify(payload));
       window.sessionStorage.setItem("dentai-clinical-case", JSON.stringify(requestCase));
       router.push("/cases/demo");
     } catch (error) {
       setIsAnalyzing(false);
-      setErrors({ submit: error instanceof TypeError ? "Network error. Check your connection and try again." : error instanceof Error ? error.message : "Analysis could not be completed. Please try again." });
+      setErrors({
+        submit:
+          error instanceof TypeError
+            ? "Network error. Check your connection and try again."
+            : error instanceof Error
+            ? error.message
+            : "Analysis could not be completed. Please try again.",
+      });
     }
   }
 
   return (
-    <form ref={formRef} onSubmit={handleSubmit} className="space-y-5" noValidate>
-      <div className="flex items-start gap-2 rounded-lg border border-teal-100 bg-teal-50/70 px-4 py-3 text-xs leading-5 text-teal-950"><Icon name="folder" size={15} /><span>Use de-identified or synthetic patient information during early testing.</span></div>
-      {sections.map((section, index) => <FormSection key={section.title} index={index + 1} {...section} errors={errors} />)}
+    <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" noValidate>
+      {/* Clinician Guidance Notice */}
+      <div className="flex items-start gap-2.5 rounded-lg border border-teal-100 bg-teal-50/70 px-4 py-3 text-xs leading-5 text-teal-950">
+        <Icon name="folder" size={16} />
+        <div>
+          <span className="font-semibold">Clinical workspace notice:</span> Complete the sections relevant to this consultation. Unfilled objective fields will be explicitly categorized as unobserved/missing rather than inferred.
+        </div>
+      </div>
+
+      {/* 1. Case Information */}
+      <SectionContainer index={1} title="Case Information" description="Basic consultation identifiers">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-caseId" className="mb-1.5 block text-xs font-semibold text-slate-700">Case ID *</label>
+            <input id="field-caseId" name="caseId" placeholder="e.g. CASE-001" className={inputClass(errors.caseId)} />
+            {errors.caseId && <p className="mt-1 text-xs text-red-600">{errors.caseId}</p>}
+          </div>
+          <div>
+            <label htmlFor="field-age" className="mb-1.5 block text-xs font-semibold text-slate-700">Age (years) *</label>
+            <input id="field-age" name="age" type="number" min="0" placeholder="Years" className={inputClass(errors.age)} />
+            {errors.age && <p className="mt-1 text-xs text-red-600">{errors.age}</p>}
+          </div>
+          <div>
+            <label htmlFor="field-sex" className="mb-1.5 block text-xs font-semibold text-slate-700">Biological Sex *</label>
+            <select id="field-sex" name="sex" defaultValue="" className={selectClass(errors.sex)}>
+              <option value="" disabled>Select sex</option>
+              <option>Male</option>
+              <option>Female</option>
+              <option>Intersex</option>
+              <option>Prefer not to say</option>
+            </select>
+            {errors.sex && <p className="mt-1 text-xs text-red-600">{errors.sex}</p>}
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 2. Chief Complaint */}
+      <SectionContainer index={2} title="Chief Complaint" description="Patient's primary presenting concern">
+        <div>
+          <label htmlFor="field-complaint" className="mb-1.5 block text-xs font-semibold text-slate-700">Presenting complaint in patient&apos;s own words *</label>
+          <textarea id="field-complaint" name="complaint" rows={3} placeholder="Describe the main complaint (e.g. Pain in lower right tooth when biting)..." className={textareaClass(errors.complaint)} />
+          {errors.complaint && <p className="mt-1 text-xs text-red-600">{errors.complaint}</p>}
+        </div>
+      </SectionContainer>
+
+      {/* 3. Pain Assessment */}
+      <SectionContainer index={3} title="Pain Assessment" description="History and character of presenting discomfort">
+        <div className="mb-4 flex items-center gap-4">
+          <span className="text-xs font-semibold text-slate-700">Is pain present?</span>
+          <label className="flex items-center gap-1.5 text-xs text-slate-700">
+            <input type="radio" name="painPresent" value="yes" checked={painPresent === "yes"} onChange={() => setPainPresent("yes")} className="text-teal-600" />
+            Yes
+          </label>
+          <label className="flex items-center gap-1.5 text-xs text-slate-700">
+            <input type="radio" name="painPresent" value="no" checked={painPresent === "no"} onChange={() => setPainPresent("no")} className="text-teal-600" />
+            No / Asymptomatic
+          </label>
+        </div>
+
+        {painPresent === "yes" && (
+          <div className="space-y-4 rounded-lg bg-slate-50/70 p-4 border border-slate-200/60">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label htmlFor="field-duration" className="mb-1.5 block text-xs font-medium text-slate-700">Duration *</label>
+                <input id="field-duration" name="duration" placeholder="e.g. 3 days, 2 weeks" className={inputClass(errors.duration)} />
+                {errors.duration && <p className="mt-1 text-xs text-red-600">{errors.duration}</p>}
+              </div>
+              <div>
+                <label htmlFor="field-onset" className="mb-1.5 block text-xs font-medium text-slate-700">Onset</label>
+                <select id="field-onset" name="onset" defaultValue="" className={selectClass()}>
+                  <option value="">Select onset</option>
+                  <option>Sudden</option>
+                  <option>Gradual</option>
+                  <option>Recurrent</option>
+                  <option>Following recent dental work</option>
+                  <option>Following trauma</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="field-frequency" className="mb-1.5 block text-xs font-medium text-slate-700">Frequency</label>
+                <select id="field-frequency" name="frequency" defaultValue="" className={selectClass()}>
+                  <option value="">Select frequency</option>
+                  <option>Constant</option>
+                  <option>Intermittent</option>
+                  <option>Spontaneous only</option>
+                  <option>Provoked only</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label htmlFor="field-character" className="mb-1.5 block text-xs font-medium text-slate-700">Pain Character / Symptoms *</label>
+                <input id="field-symptoms" name="symptoms" placeholder="e.g. Sharp, dull aching, throbbing" className={inputClass(errors.symptoms)} />
+                {errors.symptoms && <p className="mt-1 text-xs text-red-600">{errors.symptoms}</p>}
+              </div>
+              <div>
+                <label htmlFor="field-severity" className="mb-1.5 block text-xs font-medium text-slate-700">Severity</label>
+                <select id="field-severity" name="severity" defaultValue="" className={selectClass()}>
+                  <option value="">Select severity</option>
+                  <option>Mild (1-3/10)</option>
+                  <option>Moderate (4-6/10)</option>
+                  <option>Severe (7-10/10)</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="field-lingeringPain" className="mb-1.5 block text-xs font-medium text-slate-700">Lingering Thermal Pain</label>
+                <select id="field-lingeringPain" name="lingeringPain" defaultValue="" className={selectClass()}>
+                  <option value="">Select response</option>
+                  <option>Lingers &gt;30 seconds</option>
+                  <option>Transient (&lt;10 seconds)</option>
+                  <option>No thermal sensitivity</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="field-aggravating" className="mb-1.5 block text-xs font-medium text-slate-700">Provoking / Aggravating Factors</label>
+                <input id="field-aggravating" name="aggravating" placeholder="e.g. Cold drinks, chewing, heat" className={inputClass()} />
+              </div>
+              <div>
+                <label htmlFor="field-relieving" className="mb-1.5 block text-xs font-medium text-slate-700">Relieving Factors</label>
+                <input id="field-relieving" name="relieving" placeholder="e.g. Ibuprofen, cold water, avoiding area" className={inputClass()} />
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="field-spontaneousPain" className="mb-1.5 block text-xs font-medium text-slate-700">Spontaneous Pain</label>
+                <select id="field-spontaneousPain" name="spontaneousPain" defaultValue="" className={selectClass()}>
+                  <option value="">Select option</option>
+                  <option>Yes (occurs without stimulus)</option>
+                  <option>No (provoked only)</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="field-nocturnalPain" className="mb-1.5 block text-xs font-medium text-slate-700">Nocturnal Pain (wakes patient)</label>
+                <select id="field-nocturnalPain" name="nocturnalPain" defaultValue="" className={selectClass()}>
+                  <option value="">Select option</option>
+                  <option>Yes</option>
+                  <option>No</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+      </SectionContainer>
+
+      {/* 4. Tooth / Region */}
+      <SectionContainer index={4} title="Tooth / Region" description="Anatomical site under evaluation">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-toothNumber" className="mb-1.5 block text-xs font-semibold text-slate-700">Tooth Number (FDI or Universal)</label>
+            <input id="field-toothNumber" name="toothNumber" placeholder="e.g. 46, 36, 11" className={inputClass(errors.toothNumber)} />
+            {errors.toothNumber && <p className="mt-1 text-xs text-red-600">{errors.toothNumber}</p>}
+          </div>
+          <div>
+            <label htmlFor="field-arch" className="mb-1.5 block text-xs font-medium text-slate-700">Dental Arch</label>
+            <select id="field-arch" name="arch" defaultValue="" className={selectClass()}>
+              <option value="">Select arch</option>
+              <option value="maxillary">Maxillary (Upper)</option>
+              <option value="mandibular">Mandibular (Lower)</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-quadrant" className="mb-1.5 block text-xs font-medium text-slate-700">Quadrant</label>
+            <select id="field-quadrant" name="quadrant" defaultValue="" className={selectClass()}>
+              <option value="">Select quadrant</option>
+              <option>Upper Right (Q1)</option>
+              <option>Upper Left (Q2)</option>
+              <option>Lower Left (Q3)</option>
+              <option>Lower Right (Q4)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="field-region" className="mb-1.5 block text-xs font-medium text-slate-700">Anatomical Region / Landmark</label>
+            <input id="field-region" name="region" placeholder="e.g. Lower right posterior quadrant" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-toothStatus" className="mb-1.5 block text-xs font-medium text-slate-700">Tooth Status</label>
+            <select id="field-toothStatus" name="toothStatus" defaultValue="" className={selectClass()}>
+              <option value="">Select status</option>
+              <option>Present &amp; intact</option>
+              <option>Carious</option>
+              <option>Restored</option>
+              <option>Crowned</option>
+              <option>Endodontically treated</option>
+              <option>Fractured</option>
+              <option>Implant</option>
+            </select>
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 5. Pulpal Assessment */}
+      <SectionContainer index={5} title="Pulpal Assessment" description="Pulp vitality and sensibility testing findings">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-coldTest" className="mb-1.5 block text-xs font-medium text-slate-700">Cold Test (Endo-Ice / Ethyl Chloride)</label>
+            <select id="field-coldTest" name="coldTest" defaultValue="" className={selectClass()}>
+              <option value="">Not tested</option>
+              <option>Normal (transient response)</option>
+              <option>Exaggerated &amp; lingering (&gt;10s)</option>
+              <option>Non-responsive / No sensation</option>
+              <option>Intense sharp transient</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-heatTest" className="mb-1.5 block text-xs font-medium text-slate-700">Heat Test (Gutta-percha)</label>
+            <select id="field-heatTest" name="heatTest" defaultValue="" className={selectClass()}>
+              <option value="">Not tested</option>
+              <option>Normal</option>
+              <option>Exaggerated / lingering</option>
+              <option>Non-responsive</option>
+              <option>Relieved by cold</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-electricPulpTest" className="mb-1.5 block text-xs font-medium text-slate-700">Electric Pulp Test (EPT)</label>
+            <input id="field-electricPulpTest" name="electricPulpTest" placeholder="e.g. Responsive at 35/80, or No response (80/80)" className={inputClass()} />
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="field-pulpTestResponse" className="mb-1.5 block text-xs font-medium text-slate-700">Pulp Test Observations</label>
+            <input id="field-pulpTestResponse" name="pulpTestResponse" placeholder="e.g. Lingering dull ache after cold removal" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-lingeringDuration" className="mb-1.5 block text-xs font-medium text-slate-700">Lingering Duration</label>
+            <input id="field-lingeringDuration" name="lingeringDuration" placeholder="e.g. >45 seconds, 2 minutes" className={inputClass()} />
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 6. Periapical Assessment */}
+      <SectionContainer index={6} title="Periapical Assessment" description="Periapical tissues and mechanical testing">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-percussion" className="mb-1.5 block text-xs font-medium text-slate-700">Percussion Test</label>
+            <select id="field-percussion" name="percussion" defaultValue="" className={selectClass()}>
+              <option value="">Not tested</option>
+              <option>Negative (-) Normal</option>
+              <option>Tender / Positive (+)</option>
+              <option>Extremely painful (++)</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-palpation" className="mb-1.5 block text-xs font-medium text-slate-700">Palpation (Apical Mucosa)</label>
+            <select id="field-palpation" name="palpation" defaultValue="" className={selectClass()}>
+              <option value="">Not tested</option>
+              <option>Negative (-) Normal</option>
+              <option>Tender in buccal sulcus (+)</option>
+              <option>Fluctuant swelling felt</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-biteTest" className="mb-1.5 block text-xs font-medium text-slate-700">Bite Test (Tooth Slooth)</label>
+            <select id="field-biteTest" name="biteTest" defaultValue="" className={selectClass()}>
+              <option value="">Not tested</option>
+              <option>Negative</option>
+              <option>Pain on release (suggests fracture)</option>
+              <option>Pain on biting pressure</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-mobility" className="mb-1.5 block text-xs font-medium text-slate-700">Mobility</label>
+            <select id="field-mobility" name="mobility" defaultValue="" className={selectClass()}>
+              <option value="">Not tested</option>
+              <option>Normal (Grade 0)</option>
+              <option>Grade I (&lt;1mm horizontal)</option>
+              <option>Grade II (&gt;1mm horizontal)</option>
+              <option>Grade III (vertical + horizontal)</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-sinusTract" className="mb-1.5 block text-xs font-medium text-slate-700">Sinus Tract / Stoma</label>
+            <select id="field-sinusTract" name="sinusTract" defaultValue="" className={selectClass()}>
+              <option value="">Not observed</option>
+              <option>Absent</option>
+              <option>Present (vestibular/buccal)</option>
+              <option>Present (palatal/lingual)</option>
+              <option>Present (cutaneous)</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-swelling" className="mb-1.5 block text-xs font-medium text-slate-700">Periapical Swelling</label>
+            <select id="field-swelling" name="swelling" defaultValue="" className={selectClass()}>
+              <option value="">None</option>
+              <option>Localized intraoral (vestibular)</option>
+              <option>Diffuse intraoral swelling</option>
+              <option>Extraoral facial swelling</option>
+            </select>
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 7. Periodontal Assessment (Collapsible) */}
+      <SectionContainer
+        index={7}
+        title="Periodontal Assessment"
+        description="Gingival and periodontal attachment measurements"
+        collapsible
+        isOpen={showPeriodontal}
+        onToggle={() => setShowPeriodontal(!showPeriodontal)}
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-probingDepth" className="mb-1.5 block text-xs font-medium text-slate-700">Probing Depths</label>
+            <select id="field-probingDepth" name="probingDepth" defaultValue="" className={selectClass()}>
+              <option value="">Not probed</option>
+              <option>Within normal limits (&le;3mm)</option>
+              <option>Localized pocketing (4-5mm)</option>
+              <option>Deep pocketing (&ge;6mm)</option>
+              <option>Isolated deep narrow pocket (&gt;7mm)</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-bleedingOnProbing" className="mb-1.5 block text-xs font-medium text-slate-700">Bleeding on Probing (BOP)</label>
+            <select id="field-bleedingOnProbing" name="bleedingOnProbing" defaultValue="" className={selectClass()}>
+              <option value="">Not tested</option>
+              <option>Absent</option>
+              <option>Localized positive</option>
+              <option>Generalized positive</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-furcation" className="mb-1.5 block text-xs font-medium text-slate-700">Furcation Involvement</label>
+            <select id="field-furcation" name="furcation" defaultValue="" className={selectClass()}>
+              <option value="">Not applicable / None</option>
+              <option>Class I (early)</option>
+              <option>Class II (partial)</option>
+              <option>Class III (through-and-through)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="field-recession" className="mb-1.5 block text-xs font-medium text-slate-700">Gingival Recession</label>
+            <input id="field-recession" name="recession" placeholder="e.g. 2mm buccal recession" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-attachmentLoss" className="mb-1.5 block text-xs font-medium text-slate-700">Clinical Attachment Loss</label>
+            <input id="field-attachmentLoss" name="attachmentLoss" placeholder="e.g. 3mm CAL" className={inputClass()} />
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 8. Hard-Tissue Findings */}
+      <SectionContainer index={8} title="Hard-Tissue Findings" description="Coronal tooth structure, restorations, and caries">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-caries" className="mb-1.5 block text-xs font-medium text-slate-700">Dental Caries</label>
+            <select id="field-caries" name="caries" defaultValue="" className={selectClass()}>
+              <option value="">None noted</option>
+              <option>Deep carious lesion</option>
+              <option>Moderate coronal caries</option>
+              <option>Incipient enamel caries</option>
+              <option>Recurrent / secondary caries</option>
+              <option>Root caries</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-restoration" className="mb-1.5 block text-xs font-medium text-slate-700">Existing Restoration</label>
+            <input id="field-restoration" name="restoration" placeholder="e.g. Amalgam, Composite, Crown" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-crack" className="mb-1.5 block text-xs font-medium text-slate-700">Crack / Craze Lines</label>
+            <input id="field-crack" name="crack" placeholder="e.g. Mesiodistal marginal ridge crack" className={inputClass()} />
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-fracture" className="mb-1.5 block text-xs font-medium text-slate-700">Fractured Structure</label>
+            <input id="field-fracture" name="fracture" placeholder="e.g. Fractured cusp, fractured restoration" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-toothWear" className="mb-1.5 block text-xs font-medium text-slate-700">Tooth Wear</label>
+            <select id="field-toothWear" name="toothWear" defaultValue="" className={selectClass()}>
+              <option value="">None / Normal</option>
+              <option>Attrition (bruxism facets)</option>
+              <option>Erosion (acid wear)</option>
+              <option>Abfraction</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="field-discoloration" className="mb-1.5 block text-xs font-medium text-slate-700">Discoloration</label>
+            <input id="field-discoloration" name="discoloration" placeholder="e.g. Grayish discoloration of crown" className={inputClass()} />
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 9. Soft-Tissue Findings */}
+      <SectionContainer index={9} title="Soft-Tissue Findings" description="Oral mucosa, gingiva, and extraoral observations">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-gingivalFinding" className="mb-1.5 block text-xs font-medium text-slate-700">Gingival Status</label>
+            <input id="field-gingivalFinding" name="gingivalFinding" placeholder="e.g. Edematous, erythematous marginal gingiva" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-mucosalFinding" className="mb-1.5 block text-xs font-medium text-slate-700">Mucosal Findings</label>
+            <input id="field-mucosalFinding" name="mucosalFinding" placeholder="e.g. Normal pink, aphthae, erythema" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-softTissueSwelling" className="mb-1.5 block text-xs font-medium text-slate-700">Soft Tissue Swelling</label>
+            <input id="field-softTissueSwelling" name="softTissueSwelling" placeholder="e.g. 5mm fluctuant vestibular swelling" className={inputClass()} />
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="field-extraoral" className="mb-1.5 block text-xs font-medium text-slate-700">Extraoral Examination</label>
+            <input id="field-extraoral" name="extraoral" placeholder="e.g. Facial symmetry, lymphadenopathy, TMJ" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-ulcer" className="mb-1.5 block text-xs font-medium text-slate-700">Ulcers or Lesions</label>
+            <input id="field-ulcer" name="ulcer" placeholder="e.g. Ulceration on buccal mucosa" className={inputClass()} />
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 10. Medical History */}
+      <SectionContainer index={10} title="Medical History" description="Systemic conditions, medications, and allergies">
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-systemicConditions" className="mb-1.5 block text-xs font-medium text-slate-700">Systemic Conditions</label>
+            <textarea id="field-systemicConditions" name="systemicConditions" rows={2} placeholder="e.g. Hypertension, Diabetes, Asthma, None reported" className={textareaClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-medications" className="mb-1.5 block text-xs font-medium text-slate-700">Current Medications</label>
+            <textarea id="field-medications" name="medications" rows={2} placeholder="e.g. Metformin, Amlodipine, None" className={textareaClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-allergies" className="mb-1.5 block text-xs font-medium text-slate-700">Allergies</label>
+            <textarea id="field-allergies" name="allergies" rows={2} placeholder="e.g. Penicillin, Latex, NKDA" className={textareaClass()} />
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 11. Dental History (Collapsible) */}
+      <SectionContainer
+        index={11}
+        title="Dental History"
+        description="Previous dental care, pain history, and extractions"
+        collapsible
+        isOpen={showDentalHistory}
+        onToggle={() => setShowDentalHistory(!showDentalHistory)}
+      >
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-previousTreatment" className="mb-1.5 block text-xs font-medium text-slate-700">Previous Treatment in Area</label>
+            <input id="field-previousTreatment" name="previousTreatment" placeholder="e.g. Filling 2 years ago" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-previousPain" className="mb-1.5 block text-xs font-medium text-slate-700">Previous Pain Episodes</label>
+            <input id="field-previousPain" name="previousPain" placeholder="e.g. Similar sensitivity months ago" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-traumaHistory" className="mb-1.5 block text-xs font-medium text-slate-700">Trauma History</label>
+            <input id="field-traumaHistory" name="traumaHistory" placeholder="e.g. Sports impact 6 months ago" className={inputClass()} />
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div>
+            <label htmlFor="field-endodonticHistory" className="mb-1.5 block text-xs font-medium text-slate-700">Endodontic History</label>
+            <input id="field-endodonticHistory" name="endodonticHistory" placeholder="e.g. Root canal on adjacent tooth" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-extractionHistory" className="mb-1.5 block text-xs font-medium text-slate-700">Extraction History</label>
+            <input id="field-extractionHistory" name="extractionHistory" placeholder="e.g. Third molars removed" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-hygiene" className="mb-1.5 block text-xs font-medium text-slate-700">Oral Hygiene Level</label>
+            <select id="field-hygiene" name="hygiene" defaultValue="" className={selectClass()}>
+              <option value="">Select hygiene</option>
+              <option>Good</option>
+              <option>Fair</option>
+              <option>Poor</option>
+            </select>
+          </div>
+        </div>
+      </SectionContainer>
+
+      {/* 12. Investigations */}
+      <SectionContainer index={12} title="Investigations" description="Diagnostic tests and radiographic records">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="field-investigationsPerformed" className="mb-1.5 block text-xs font-medium text-slate-700">Investigations Performed</label>
+            <input id="field-investigationsPerformed" name="investigationsPerformed" placeholder="e.g. Cold test, Percussion, Palpation" className={inputClass()} />
+          </div>
+          <div>
+            <label htmlFor="field-radiographAvailable" className="mb-1.5 block text-xs font-medium text-slate-700">Radiograph Taken for Consultation</label>
+            <select id="field-radiographAvailable" name="radiographAvailable" defaultValue="" className={selectClass()}>
+              <option value="">Select status</option>
+              <option>No radiograph available</option>
+              <option>Periapical radiograph taken</option>
+              <option>Bitewing radiograph taken</option>
+              <option>Panoramic radiograph taken</option>
+              <option>CBCT taken</option>
+            </select>
+          </div>
+        </div>
+        <div className="mt-4">
+          <label htmlFor="field-investigationResults" className="mb-1.5 block text-xs font-medium text-slate-700">Investigation Findings Summary</label>
+          <textarea id="field-investigationResults" name="investigationResults" rows={2} placeholder="Summarize any clinical test responses..." className={textareaClass()} />
+        </div>
+      </SectionContainer>
+
+      {/* 13. Relevant Negative Findings */}
+      <SectionContainer index={13} title="Relevant Negative Findings" description="Explicitly ruled-out symptoms and signs">
+        <div>
+          <label htmlFor="field-relevantNegativeFindings" className="mb-1.5 block text-xs font-medium text-slate-700">Negative Findings (important for differential diagnosis)</label>
+          <textarea id="field-relevantNegativeFindings" name="relevantNegativeFindings" rows={2} placeholder="e.g. No facial swelling, no vestibular sinus tract, no abnormal mobility, no lymphadenopathy..." className={textareaClass()} />
+        </div>
+      </SectionContainer>
+
+      {/* 14. Additional Clinical Notes */}
+      <SectionContainer index={14} title="Additional Clinical Notes" description="Clinician observations, patient preferences, or diagnostic questions">
+        <div>
+          <label htmlFor="field-additionalClinicalNotes" className="mb-1.5 block text-xs font-medium text-slate-700">Clinician Notes</label>
+          <textarea id="field-additionalClinicalNotes" name="additionalClinicalNotes" rows={2} placeholder="Any additional context for clinical decision support..." className={textareaClass()} />
+        </div>
+      </SectionContainer>
+
+      {/* 15. Radiograph Attachment */}
       <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7">
-        <SectionHeading title="Radiograph" description="Attach an image if one is available for the case." index={7} />
-        <label htmlFor="radiograph" className="mt-6 flex min-h-40 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center transition hover:border-teal-400 hover:bg-teal-50/30">
-          {radiograph?.dataUrl ? <Image src={radiograph.dataUrl} alt={`Preview of ${fileName}`} width={320} height={128} unoptimized className="mb-3 max-h-32 w-auto max-w-full rounded object-contain" /> : <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-teal-700 shadow-sm"><Icon name="plus" size={20} /></span>}
+        <div className="flex gap-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">15</span>
+          <div>
+            <h2 className="text-base font-semibold text-slate-950">Radiograph</h2>
+            <p className="mt-1 text-sm leading-5 text-slate-500">Attach an image file if one is available for clinician reference.</p>
+          </div>
+        </div>
+        <label htmlFor="radiograph" className="mt-6 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center transition hover:border-teal-400 hover:bg-teal-50/30">
+          {radiograph?.dataUrl ? (
+            <Image src={radiograph.dataUrl} alt={`Preview of ${fileName}`} width={320} height={128} unoptimized className="mb-3 max-h-32 w-auto max-w-full rounded object-contain" />
+          ) : (
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-teal-700 shadow-sm">
+              <Icon name="plus" size={20} />
+            </span>
+          )}
           <span className="mt-3 text-sm font-semibold text-slate-800">{fileName || "Drop a radiograph here or browse"}</span>
           <span className="mt-1 text-xs text-slate-500">PNG, JPG up to 10MB</span>
-          <input id="radiograph" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(event) => handleRadiograph(event.target.files?.[0])} />
+          <input id="radiograph" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => handleRadiograph(e.target.files?.[0])} />
         </label>
-        {radiograph && <button type="button" onClick={() => { setRadiograph(null); setFileName(""); }} className="mt-3 text-xs font-semibold text-slate-600 underline hover:text-red-700">Remove image</button>}
+        {radiograph && (
+          <button type="button" onClick={() => { setRadiograph(null); setFileName(""); }} className="mt-3 text-xs font-semibold text-slate-600 underline hover:text-red-700">
+            Remove image
+          </button>
+        )}
         {errors.radiograph && <p className="mt-2 text-sm text-red-700">{errors.radiograph}</p>}
-        <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500"><Icon name="spark" size={14} /><span>AI image analysis will be added later. This prototype does not interpret or send uploaded images.</span></p>
+        <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500">
+          <Icon name="spark" size={14} />
+          <span>AI image interpretation will be added later. Radiographs are preserved locally and excluded from AI prompts in this prototype.</span>
+        </p>
       </section>
-      {errors.submit && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-800">{errors.submit}</p>}
+
+      {errors.submit && (
+        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-800">
+          {errors.submit}
+        </p>
+      )}
+
+      {/* Form Action Controls */}
       <div className="flex flex-col items-start justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center">
-        <div><p className="text-xs leading-5 text-slate-500">You can review and edit your findings before any future analysis.</p>{draftMessage && <p role="status" className="mt-1 text-xs font-medium text-teal-700">{draftMessage}</p>}</div>
+        <div>
+          <p className="text-xs leading-5 text-slate-500">You can review and edit your clinical findings before submitting.</p>
+          {draftMessage && <p role="status" className="mt-1 text-xs font-medium text-teal-700">{draftMessage}</p>}
+        </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <button type="button" onClick={saveDraft} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"><Icon name="folder" size={17} />Save Draft</button>
-          <button type="submit" disabled={isAnalyzing} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-75"><Icon name="spark" size={17} />{isAnalyzing ? "Preparing prototype..." : "Analyze Case"}</button>
+          <button type="button" onClick={saveDraft} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800">
+            <Icon name="folder" size={17} />
+            Save Draft
+          </button>
+          <button type="submit" disabled={isAnalyzing} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-75">
+            <Icon name="spark" size={17} />
+            {isAnalyzing ? "Analyzing case..." : "Analyze Case"}
+          </button>
         </div>
       </div>
     </form>
   );
 }
 
-function FormSection({ title, description, fields, index, errors }: { title: string; description: string; fields: Field[]; index: number; errors: Record<string, string> }) {
-  return <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7"><SectionHeading title={title} description={description} index={index} /><div className={`mt-6 grid gap-5 ${fields.length > 1 ? "sm:grid-cols-2" : ""}`}>{fields.map((field) => <FieldControl key={field.name} {...field} error={errors[field.name]} />)}</div></section>;
+function SectionContainer({
+  index,
+  title,
+  description,
+  collapsible = false,
+  isOpen = true,
+  onToggle,
+  children,
+}: {
+  index: number;
+  title: string;
+  description: string;
+  collapsible?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7">
+      <div className="flex items-center justify-between">
+        <div className="flex gap-3">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">
+            {index}
+          </span>
+          <div>
+            <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+            <p className="mt-0.5 text-xs leading-5 text-slate-500">{description}</p>
+          </div>
+        </div>
+        {collapsible && onToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          >
+            {isOpen ? "Collapse" : "Expand (optional)"}
+          </button>
+        )}
+      </div>
+      {(!collapsible || isOpen) && <div className="mt-5">{children}</div>}
+    </section>
+  );
 }
-function SectionHeading({ title, description, index }: { title: string; description: string; index: number }) {
-  return <div className="flex gap-3"><span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">{index}</span><div><h2 className="text-base font-semibold text-slate-950">{title}</h2><p className="mt-1 text-sm leading-5 text-slate-500">{description}</p></div></div>;
+
+function inputClass(error?: string) {
+  return `w-full h-10 rounded-lg border ${
+    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-teal-600 focus:ring-teal-100"
+  } bg-white px-3 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2`;
 }
-function FieldControl({ label, name, placeholder, type = "input", error }: Field & { error?: string }) {
-  const id = `field-${name}`;
-  const className = `w-full rounded-lg border ${error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-teal-600 focus:ring-teal-100"} bg-white px-3.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2`;
-  return <div className={type === "textarea" ? "sm:col-span-2" : ""}><label htmlFor={id} className="mb-2 block text-sm font-medium text-slate-700">{label}</label>{type === "textarea" ? <textarea id={id} name={name} placeholder={placeholder} rows={4} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} className={`${className} resize-y py-3`} /> : type === "select" ? <select id={id} name={name} defaultValue="" aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} className={`${className} h-11`}><option value="" disabled>Select sex</option><option>Female</option><option>Male</option><option>Intersex</option><option>Prefer not to say</option></select> : <input id={id} name={name} placeholder={placeholder} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} className={`${className} h-11`} />}{error && <p id={`${id}-error`} className="mt-1.5 text-sm text-red-700">{error}</p>}</div>;
+
+function selectClass(error?: string) {
+  return `w-full h-10 rounded-lg border ${
+    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-teal-600 focus:ring-teal-100"
+  } bg-white px-3 text-xs text-slate-900 outline-none transition focus:ring-2`;
+}
+
+function textareaClass(error?: string) {
+  return `w-full rounded-lg border ${
+    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-teal-600 focus:ring-teal-100"
+  } bg-white px-3 py-2 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 resize-y`;
 }
