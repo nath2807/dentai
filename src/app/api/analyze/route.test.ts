@@ -15,27 +15,62 @@ const validAnalysis = {
   problemList: ["Cold sensitivity", "Deep caries"],
   possibleDiagnoses: [
     {
-      diagnosis: "Reversible pulpitis",
+      diagnosis: "Symptomatic Irreversible Pulpitis",
+      diagnosticCategory: "pulpal" as const,
       likelihood: "moderate" as const,
+      confidenceReason:
+        "Concordant thermal and physical findings in presence of deep caries, pending radiograph.",
+      rank: 1,
+      whyRanksHighest: "Lingering cold response and deep caries indicate irreversible pulpal damage.",
       supportingFindings: ["Cold sensitivity"],
       contradictingFindings: [],
       evidenceType: "clinical findings",
-      reasoning: "Transient response consistent with reversible pulpal inflammation.",
+      reasoning: "Lingering response consistent with pulpal inflammation.",
+      evidenceMap: [
+        {
+          finding: "Cold sensitivity",
+          interpretation: "Thermal hyper-responsiveness",
+          diagnosticRelevance: "Indicates pulpal inflammation",
+        },
+      ],
+    },
+  ],
+  evidenceMap: [
+    {
+      finding: "Cold sensitivity",
+      interpretation: "Thermal hyper-responsiveness",
+      diagnosticRelevance: "Indicates pulpal inflammation",
     },
   ],
   differentialDiagnosis: [
     {
       diagnosis: "Dentin hypersensitivity",
       whyConsidered: "Cold sensitivity complaint",
+      supportingEvidence: ["Cold sensitivity"],
       supportingFindings: ["Cold sensitivity"],
+      evidenceAgainst: ["Deep caries suggests pulpal rather than dentinal etiology"],
+      whatWouldChangeRanking: "If pulp testing response was transient without caries proximity",
       missingEvidence: ["Pulp testing with lingering evaluation"],
     },
   ],
-  missingInformation: ["Duration of pain after stimulus", "Periapical radiograph"],
+  contradictions: [],
+  missingInformation: [
+    {
+      item: "Periapical radiograph",
+      importance: "critical" as const,
+      whyItMatters: "Required to evaluate proximity to pulp and rule out apical lesion",
+    },
+    {
+      item: "Duration of pain after stimulus",
+      importance: "important" as const,
+      whyItMatters: "Distinguishes reversible from irreversible pulpitis",
+    },
+  ],
   suggestedInvestigations: ["Complete pulp vitality testing", "Periapical radiograph"],
   treatmentConsiderations: ["Review the tooth before treatment planning", "Caries excavation"],
   redFlags: [],
   uncertainty: ["Radiographic and objective sensibility confirmation unavailable"],
+  decisionChangingEvidence: ["Periapical radiolucency on radiograph", "Unresponsive to EPT"],
   safetyNotes: ["A licensed dentist must review all suggestions before definitive action."],
 };
 
