@@ -65,8 +65,29 @@ function publicError(message: string, status: number) {
 
 export async function POST(request: Request) {
   const model = process.env.GEMINI_MODEL || defaultModel;
-  const apiKeyPresent = Boolean(process.env.GEMINI_API_KEY);
-  if (!apiKeyPresent) {
+  const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY?.trim());
+  const hasGoogleKey = Boolean(process.env.GOOGLE_API_KEY?.trim());
+
+  let keySource: "GEMINI_API_KEY" | "GOOGLE_API_KEY" | "NONE" = "NONE";
+  let apiKey: string | undefined = undefined;
+
+  if (hasGeminiKey) {
+    keySource = "GEMINI_API_KEY";
+    apiKey = process.env.GEMINI_API_KEY!.trim();
+  } else if (hasGoogleKey) {
+    keySource = "GOOGLE_API_KEY";
+    apiKey = process.env.GOOGLE_API_KEY!.trim();
+  }
+
+  // Safe diagnostic log: reports presence booleans, key source name, and model without exposing secrets
+  console.log(
+    `[Dentarith] /api/analyze diagnostic: GEMINI_API_KEY=${hasGeminiKey}, GOOGLE_API_KEY=${hasGoogleKey}, keySource=${keySource}, model=${model}`
+  );
+
+  if (!apiKey) {
+    console.error(
+      `[Dentarith] /api/analyze error: Missing API key in server environment (GEMINI_API_KEY=${hasGeminiKey}, GOOGLE_API_KEY=${hasGoogleKey}). Returning 503.`
+    );
     return publicError(
       "AI analysis is temporarily unavailable. Please contact your administrator.",
       503
@@ -86,7 +107,7 @@ export async function POST(request: Request) {
   }
 
   const caseWithoutImage = { ...caseResult.data, radiograph: null };
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
 
   try {
     let response: { text?: string | null } | undefined;
@@ -148,7 +169,15 @@ export async function POST(request: Request) {
 
     return NextResponse.json(analysisResult.data);
   } catch (error) {
-    console.error("[Dentarith] Gemini API error:", error);
+    const status =
+      typeof error === "object" && error !== null && "status" in error
+        ? (error as { status?: number }).status
+        : undefined;
+    const message = error instanceof Error ? error.message : "Unknown error";
+    console.error(
+      `[Dentarith] /api/analyze: Gemini API request failed (status: ${status || "unknown"}):`,
+      message
+    );
     return publicError(
       "AI analysis is temporarily unavailable. Please try again.",
       502
