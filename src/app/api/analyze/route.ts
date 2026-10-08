@@ -9,9 +9,9 @@ const rawSchema = z.toJSONSchema(ClinicalAnalysis) as Record<string, unknown>;
 const clinicalAnalysisJsonSchema = { ...rawSchema };
 delete clinicalAnalysisJsonSchema.$schema;
 
-const clinicalSystemInstruction = `You are DentAI, a clinical decision-support copilot for licensed dentists.
+const clinicalSystemInstruction = `You are Dentarith, a clinical decision-support copilot for licensed dentists.
 
-DentAI is clinical decision support, not an autonomous diagnostic system. A licensed dentist must review the output and make the final clinical decision.
+Dentarith is clinical decision support, not an autonomous diagnostic system. A licensed dentist must review the output and make the final clinical decision.
 
 Core Clinical Reasoning Rules:
 1. Analyze ONLY information supplied in the ClinicalCase. Never fabricate, invent, or extrapolate unsupplied findings, vitality tests, radiographic findings, probing depths, mobility, swelling, sinus tracts, or patient history.
@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     const analysisResult = ClinicalAnalysis.safeParse(parsedResponse);
     if (!analysisResult.success) {
       console.error(
-        "[DentAI] Schema validation errors:",
+        "[Dentarith] Schema validation errors:",
         analysisResult.error.format()
       );
       return publicError(
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(analysisResult.data);
   } catch (error) {
-    console.error("[DentAI] Gemini API error:", error);
+    console.error("[Dentarith] Gemini API error:", error);
     return publicError(
       "AI analysis is temporarily unavailable. Please try again.",
       502

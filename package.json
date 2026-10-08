@@ -1,5 +1,6 @@
 {
   "name": "dentai",
+  "description": "Dentarith Clinical Copilot — Clinical Intelligence for Dentistry",
   "version": "0.1.0",
   "private": true,
   "scripts": {

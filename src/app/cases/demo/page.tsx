@@ -51,13 +51,22 @@ export default function DemoResultsPage() {
               Evidence-traceable diagnostic suggestions for licensed clinician review.
             </p>
           </div>
-          <Link
-            href="/cases/new"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
-          >
-            <Icon name="arrow" size={15} />
-            Back to Case Form
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/cases"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+            >
+              <Icon name="folder" size={15} />
+              All Cases
+            </Link>
+            <Link
+              href="/cases/new"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+            >
+              <Icon name="arrow" size={15} />
+              Case Form
+            </Link>
+          </div>
         </div>
 
         {/* Content Body */}
@@ -73,7 +82,7 @@ export default function DemoResultsPage() {
         <div className="flex items-start gap-3 rounded-xl border border-teal-100 bg-teal-50/70 p-4 text-xs text-teal-950">
           <Icon name="folder" size={17} />
           <p className="leading-5">
-            <span className="font-bold">Clinical Safety Notice:</span> DentAI is an assistive clinical decision-support copilot, not an autonomous medical diagnostic device. All recommendations, differential diagnoses, and treatment considerations must be independently evaluated by a licensed dental professional before establishing a definitive diagnosis or initiating care.
+            <span className="font-bold">Clinical Safety Notice:</span> Dentarith is an assistive clinical decision-support copilot, not an autonomous medical diagnostic device. All recommendations, differential diagnoses, and treatment considerations must be independently evaluated by a licensed dental professional before establishing a definitive diagnosis or initiating care.
           </p>
         </div>
       </div>
@@ -123,7 +132,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
         <Icon name="spark" size={18} />
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
-            DentAI Decision Support Output (Non-Autonomous)
+            Dentarith Decision Support Output (Non-Autonomous)
           </p>
           <p className="mt-0.5 text-xs leading-5 text-amber-900/80">
             Findings are separated into reported, observed, and inferred categories to ensure evidence traceability.

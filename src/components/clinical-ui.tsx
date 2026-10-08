@@ -40,9 +40,12 @@ export function AppShell({ children, activeItem }: { children: ReactNode; active
     <div className="min-h-screen bg-[#f7f9fb] text-slate-900">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
         <div className="flex h-20 items-center border-b border-slate-100 px-7">
-          <Link href="/" className="flex items-center gap-3" aria-label="DentAI dashboard">
+          <Link href="/" className="flex items-center gap-3" aria-label="Dentarith dashboard">
             <Logo />
-            <span className="text-lg font-semibold tracking-tight text-slate-950">Dent<span className="text-teal-700">AI</span></span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold tracking-tight text-slate-950 leading-none">Dentarith</span>
+              <span className="text-[10px] font-medium tracking-wide text-teal-700 leading-tight mt-0.5">Clinical Copilot</span>
+            </div>
           </Link>
         </div>
         <nav className="flex-1 px-4 py-7" aria-label="Primary navigation">
@@ -56,14 +59,20 @@ export function AppShell({ children, activeItem }: { children: ReactNode; active
             ))}
           </div>
         </nav>
-        <div className="m-4 rounded-xl bg-slate-50 p-4">
-          <div className="flex items-center gap-2 text-teal-700"><Icon name="spark" size={16} /><span className="text-xs font-bold uppercase tracking-wide">Prototype</span></div>
-          <p className="mt-2 text-xs leading-5 text-slate-500">AI analysis is not connected yet. Your clinical data stays in this demo.</p>
+        <div className="m-4 rounded-xl bg-slate-50 p-4 border border-slate-200/60">
+          <div className="flex items-center gap-2 text-teal-700"><Icon name="spark" size={16} /><span className="text-xs font-bold uppercase tracking-wide">Clinical Copilot</span></div>
+          <p className="mt-2 text-xs leading-5 text-slate-500">Clinical Intelligence for Dentistry. Non-autonomous decision support with local browser persistence.</p>
         </div>
       </aside>
       <div className="lg:pl-64">
         <div className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-5 lg:hidden">
-          <Link href="/" className="flex items-center gap-2"><Logo size={29} /><span className="font-semibold text-slate-950">Dent<span className="text-teal-700">AI</span></span></Link>
+          <Link href="/" className="flex items-center gap-2">
+            <Logo size={29} />
+            <div className="flex flex-col">
+              <span className="text-base font-bold text-slate-950 leading-none">Dentarith</span>
+              <span className="text-[9px] font-medium text-teal-700 leading-tight">Clinical Copilot</span>
+            </div>
+          </Link>
           <Link href="/cases/new" className="flex h-9 items-center gap-2 rounded-lg bg-slate-950 px-3 text-xs font-semibold text-white"><Icon name="plus" size={15} /> New case</Link>
         </div>
         <main className="mx-auto max-w-[1280px] px-5 py-8 sm:px-8 lg:px-12 lg:py-11">{children}</main>

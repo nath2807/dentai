@@ -5,7 +5,7 @@ export default function ComingSoon({ activeItem, title, description }: { activeI
   return (
     <AppShell activeItem={activeItem}>
       <div className="mx-auto max-w-3xl">
-        <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-teal-700">DentAI / {activeItem}</p>
+        <p className="mb-2 text-sm font-semibold uppercase tracking-[0.16em] text-teal-700">Dentarith / {activeItem}</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{title}</h1>
         <p className="mt-2 text-base leading-7 text-slate-500">{description}</p>
         <div className="mt-8 flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">

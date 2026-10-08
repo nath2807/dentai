@@ -1,30 +1,81 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { Icon } from "@/components/clinical-ui";
 import {
   clinicalCaseSchema,
   normalizeClinicalCase,
+  type ClinicalCase,
   type FormValues,
   type Radiograph,
   validateRadiograph,
 } from "@/lib/clinical-case";
 import type { ZodIssue } from "zod";
 import type { ClinicalAnalysis } from "@/lib/clinical-analysis";
+import { getCase, saveCase, type StoredCase } from "@/lib/case-storage";
 
 type Draft = { values: FormValues; radiograph: Radiograph | null };
 const draftKey = "dentai-clinical-case-draft";
 
+function extractFormValuesFromStoredCase(storedCase: StoredCase): FormValues {
+  if (storedCase.formValues && Object.keys(storedCase.formValues).length > 0) {
+    return storedCase.formValues as FormValues;
+  }
+  const c = storedCase.caseData;
+  return {
+    caseId: c.caseInformation.caseId || "",
+    age: String(c.caseInformation.age ?? ""),
+    sex: c.caseInformation.sex || "",
+    complaint: c.chiefComplaint || "",
+    duration: c.historyOfPresentingComplaint.duration || "",
+    onset: c.historyOfPresentingComplaint.onset || "",
+    symptoms: c.historyOfPresentingComplaint.symptoms || "",
+    aggravatingFactors: c.historyOfPresentingComplaint.aggravatingFactors || "",
+    relievingFactors: c.historyOfPresentingComplaint.relievingFactors || "",
+    toothNumber:
+      c.toothAssessment?.toothNumber || c.clinicalExamination.toothOrRegion || "",
+    arch: c.toothAssessment?.arch || "",
+    quadrant: c.toothAssessment?.quadrant || "",
+    coldTest: c.pulpalAssessment?.coldTest || "",
+    lingeringDuration: c.pulpalAssessment?.lingeringDuration || "",
+    ept: c.pulpalAssessment?.electricPulpTest || "",
+    percussion:
+      c.periapicalAssessment?.percussion || c.clinicalExamination.percussion || "",
+    palpation:
+      c.periapicalAssessment?.palpation || c.clinicalExamination.palpation || "",
+    biteTest: c.periapicalAssessment?.biteTest || "",
+    mobility:
+      c.periapicalAssessment?.mobility || c.clinicalExamination.mobility || "",
+    sinusTract: c.periapicalAssessment?.sinusTract || "",
+    swelling: c.periapicalAssessment?.swelling || "",
+    probingDepth:
+      c.periodontalAssessment?.probingDepth || c.clinicalExamination.probing || "",
+    caries: c.hardTissueAssessment?.caries || "",
+    systemicConditions:
+      c.structuredMedicalHistory?.systemicConditions ||
+      c.medicalHistory.conditions ||
+      "",
+    relevantNegativeFindings:
+      c.relevantNegatives?.relevantNegativeFindings || "",
+    additionalClinicalNotes:
+      c.clinicianNotes?.additionalClinicalNotes || "",
+  } as FormValues;
+}
+
 export default function CaseForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const editId = searchParams.get("id");
   const formRef = useRef<HTMLFormElement>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [fileName, setFileName] = useState("");
   const [radiograph, setRadiograph] = useState<Radiograph | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [draftMessage, setDraftMessage] = useState("");
+  const [editingCase, setEditingCase] = useState<StoredCase | null>(null);
 
   // Progressive disclosure toggles
   const [painPresent, setPainPresent] = useState<string>("yes");
@@ -32,9 +83,48 @@ export default function CaseForm() {
   const [showDentalHistory, setShowDentalHistory] = useState<boolean>(false);
 
   useEffect(() => {
+    let timer: number | undefined;
+
+    // If editId is provided, populate from stored case
+    if (editId) {
+      const stored = getCase(editId);
+      if (stored && formRef.current) {
+        setEditingCase(stored);
+        const formVals = extractFormValuesFromStoredCase(stored);
+        Object.entries(formVals).forEach(([name, value]) => {
+          const field = formRef.current?.elements.namedItem(name);
+          if (
+            field instanceof HTMLInputElement ||
+            field instanceof HTMLTextAreaElement ||
+            field instanceof HTMLSelectElement
+          ) {
+            field.value = value;
+          }
+        });
+        timer = window.setTimeout(() => {
+          if (formVals.painPresent) {
+            setPainPresent(formVals.painPresent);
+          }
+          if (
+            formVals.probingDepth ||
+            stored.caseData.periodontalAssessment?.probingDepth
+          ) {
+            setShowPeriodontal(true);
+          }
+          if (
+            formVals.previousTreatment ||
+            stored.caseData.structuredDentalHistory?.previousTreatment
+          ) {
+            setShowDentalHistory(true);
+          }
+        }, 0);
+        return () => window.clearTimeout(timer);
+      }
+    }
+
+    // Otherwise restore local draft if available
     const saved = window.localStorage.getItem(draftKey);
     if (!saved || !formRef.current) return;
-    let timer: number | undefined;
     try {
       const draft = JSON.parse(saved) as Draft;
       Object.entries(draft.values).forEach(([name, value]) => {
@@ -61,7 +151,7 @@ export default function CaseForm() {
       window.localStorage.removeItem(draftKey);
     }
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [editId]);
 
   function readValues(): FormValues {
     const formData = new FormData(formRef.current ?? undefined);
@@ -102,7 +192,40 @@ export default function CaseForm() {
   function saveDraft() {
     const values = readValues();
     window.localStorage.setItem(draftKey, JSON.stringify({ values, radiograph }));
+    if (values.caseId?.trim()) {
+      const clinicalCase = normalizeClinicalCase(values, radiograph);
+      saveCase({
+        id: values.caseId.trim(),
+        caseData: clinicalCase as unknown as ClinicalCase,
+        formValues: values,
+        analysis: editingCase?.analysis || null,
+        status: "draft",
+        analysisStatus: editingCase?.analysis ? "stale" : "stale",
+      });
+    }
     setDraftMessage("Draft saved in this browser session.");
+  }
+
+  function handleSaveWithoutAnalyze() {
+    const values = readValues();
+    const clinicalCase = normalizeClinicalCase(values, radiograph);
+    const result = clinicalCaseSchema.safeParse(clinicalCase);
+
+    if (!result.success) {
+      setValidationErrors(result.error.issues);
+      return;
+    }
+
+    const caseId = result.data.caseInformation.caseId;
+    saveCase({
+      id: caseId,
+      caseData: result.data as unknown as ClinicalCase,
+      formValues: values,
+      analysis: editingCase?.analysis || null,
+      status: editingCase?.analysis ? "analyzed" : "draft",
+      analysisStatus: editingCase?.analysis ? "stale" : "stale",
+    });
+    router.push(`/cases/${encodeURIComponent(caseId)}`);
   }
 
   function handleRadiograph(file: File | undefined) {
@@ -162,9 +285,18 @@ export default function CaseForm() {
             : "Analysis could not be completed."
         );
       }
+      const caseId = requestCase.caseInformation.caseId;
+      saveCase({
+        id: caseId,
+        caseData: requestCase as unknown as ClinicalCase,
+        formValues: values,
+        analysis: payload as ClinicalAnalysis,
+        status: "analyzed",
+        analysisStatus: "current",
+      });
       window.sessionStorage.setItem("dentai-clinical-analysis", JSON.stringify(payload));
       window.sessionStorage.setItem("dentai-clinical-case", JSON.stringify(requestCase));
-      router.push("/cases/demo");
+      router.push(`/cases/${encodeURIComponent(caseId)}`);
     } catch (error) {
       setIsAnalyzing(false);
       setErrors({
@@ -180,6 +312,21 @@ export default function CaseForm() {
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" noValidate>
+      {/* Editing Existing Case Notice Banner */}
+      {editingCase && (
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50/80 p-4 text-xs text-teal-950">
+          <div>
+            <span className="font-bold">Editing Case {editingCase.id}:</span> You are modifying a saved clinical consultation. Saving changes without re-analyzing will mark the diagnostic assessment as <strong className="text-amber-800">stale</strong> until re-analyzed.
+          </div>
+          <Link
+            href={`/cases/${encodeURIComponent(editingCase.id)}`}
+            className="font-semibold text-teal-800 underline shrink-0 hover:text-teal-950"
+          >
+            Cancel Editing
+          </Link>
+        </div>
+      )}
+
       {/* Clinician Guidance Notice */}
       <div className="flex items-start gap-2.5 rounded-lg border border-teal-100 bg-teal-50/70 px-4 py-3 text-xs leading-5 text-teal-950">
         <Icon name="folder" size={16} />
@@ -755,18 +902,53 @@ export default function CaseForm() {
       {/* Form Action Controls */}
       <div className="flex flex-col items-start justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center">
         <div>
-          <p className="text-xs leading-5 text-slate-500">You can review and edit your clinical findings before submitting.</p>
+          <p className="text-xs leading-5 text-slate-500">
+            {editingCase
+              ? "Save clinical updates directly or trigger a fresh AI reasoning analysis."
+              : "You can review and edit your clinical findings before submitting."}
+          </p>
           {draftMessage && <p role="status" className="mt-1 text-xs font-medium text-teal-700">{draftMessage}</p>}
         </div>
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <button type="button" onClick={saveDraft} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800">
-            <Icon name="folder" size={17} />
-            Save Draft
-          </button>
-          <button type="submit" disabled={isAnalyzing} className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-75">
-            <Icon name="spark" size={17} />
-            {isAnalyzing ? "Analyzing case..." : "Analyze Case"}
-          </button>
+          {editingCase ? (
+            <>
+              <button
+                type="button"
+                onClick={handleSaveWithoutAnalyze}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+              >
+                <Icon name="folder" size={16} />
+                Save Changes (Mark Stale)
+              </button>
+              <button
+                type="submit"
+                disabled={isAnalyzing}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-teal-700 px-5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800 disabled:cursor-wait disabled:opacity-75"
+              >
+                <Icon name="spark" size={16} />
+                {isAnalyzing ? "Re-analyzing..." : "Re-analyze with Dentarith"}
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={saveDraft}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+              >
+                <Icon name="folder" size={17} />
+                Save Draft
+              </button>
+              <button
+                type="submit"
+                disabled={isAnalyzing}
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-75"
+              >
+                <Icon name="spark" size={17} />
+                {isAnalyzing ? "Analyzing case..." : "Analyze Case"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </form>

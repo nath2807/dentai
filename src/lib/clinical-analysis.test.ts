@@ -135,7 +135,7 @@ const validAnalysis = {
     "Cuspal deflection pain on specialized bite testing",
   ],
   safetyNotes: [
-    "DentAI provides decision support only; final diagnosis and treatment orders must be made by a licensed dentist.",
+    "Dentarith provides decision support only; final diagnosis and treatment orders must be made by a licensed dentist.",
   ],
 };
 

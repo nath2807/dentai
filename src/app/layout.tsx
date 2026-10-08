@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DentAI | Clinical decision support",
-  description: "A clinical workspace for structured dental case review.",
+  title: "Dentarith | Clinical Intelligence for Dentistry",
+  description: "Dentarith Clinical Copilot — AI-powered clinical decision-support designed to assist licensed dental practitioners.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
