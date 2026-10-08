@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     apiKey = process.env.GOOGLE_API_KEY!.trim();
   }
 
-  // Safe diagnostic log: reports presence booleans, key source name, and model without exposing secrets
+  // Safe diagnostic logging: reports key source presence and active model without exposing secrets
   console.log(
     `[Dentarith] /api/analyze diagnostic: GEMINI_API_KEY=${hasGeminiKey}, GOOGLE_API_KEY=${hasGoogleKey}, keySource=${keySource}, model=${model}`
   );
