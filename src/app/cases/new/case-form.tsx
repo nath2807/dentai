@@ -278,6 +278,7 @@ export default function CaseForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestCase),
+        signal: AbortSignal.timeout(35000),
       });
       const payload = (await response.json()) as ClinicalAnalysis | { error?: string };
       if (!response.ok) {
@@ -302,13 +303,17 @@ export default function CaseForm() {
       router.push(`/cases/${encodeURIComponent(caseId)}`);
     } catch (error) {
       setIsAnalyzing(false);
+      const isTimeout =
+        error instanceof Error &&
+        (error.name === "TimeoutError" || error.name === "AbortError");
       setErrors({
-        submit:
-          error instanceof TypeError
-            ? "Network error. Check your connection and try again."
-            : error instanceof Error
-            ? error.message
-            : "Analysis could not be completed. Please try again.",
+        submit: isTimeout
+          ? "Analysis timed out. Please check your connection and try again."
+          : error instanceof TypeError
+          ? "Network error. Check your connection and try again."
+          : error instanceof Error
+          ? error.message
+          : "Analysis could not be completed. Please try again.",
       });
     }
   }

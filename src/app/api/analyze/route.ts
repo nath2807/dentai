@@ -4,10 +4,36 @@ import { z } from "zod";
 import { ClinicalAnalysis } from "../../../lib/clinical-analysis";
 import { clinicalCaseSchema } from "../../../lib/clinical-case";
 
-const defaultModel = "gemini-3.5-flash";
+export const defaultModel = "gemini-3.8-flash";
+export const maxDuration = 35;
+export const GEMINI_TIMEOUT_MS = 25000;
+export const OVERALL_TIMEOUT_MS = 28000;
+
 const rawSchema = z.toJSONSchema(ClinicalAnalysis) as Record<string, unknown>;
 const clinicalAnalysisJsonSchema = { ...rawSchema };
 delete clinicalAnalysisJsonSchema.$schema;
+
+function isTimeoutError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const lowerMessage = error.message.toLowerCase();
+    if (
+      error.name === "TimeoutError" ||
+      error.name === "AbortError" ||
+      error.name === "RequestTimeoutError" ||
+      lowerMessage.includes("timeout") ||
+      lowerMessage.includes("aborted")
+    ) {
+      return true;
+    }
+  }
+  if (typeof error === "object" && error !== null && "status" in error) {
+    const status = (error as { status?: number }).status;
+    if (status === 408 || status === 504) {
+      return true;
+    }
+  }
+  return false;
+}
 
 const clinicalSystemInstruction = `You are Dentarith, a clinical decision-support copilot for licensed dentists.
 
@@ -107,36 +133,31 @@ export async function POST(request: Request) {
   }
 
   const caseWithoutImage = { ...caseResult.data, radiograph: null };
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      timeout: GEMINI_TIMEOUT_MS,
+      retryOptions: {
+        attempts: 2,
+        initialDelay: 1.0,
+        maxDelay: 3.0,
+        httpStatusCodes: [429, 503],
+      },
+    },
+  });
 
   try {
-    let response: { text?: string | null } | undefined;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        response = await ai.models.generateContent({
-          model,
-          contents: JSON.stringify(caseWithoutImage),
-          config: {
-            systemInstruction: clinicalSystemInstruction,
-            responseMimeType: "application/json",
-            responseJsonSchema: clinicalAnalysisJsonSchema,
-          },
-        });
-        break;
-      } catch (err: unknown) {
-        const status =
-          typeof err === "object" && err !== null && "status" in err
-            ? (err as { status?: number }).status
-            : undefined;
-        if ((status === 503 || status === 429) && attempt < 2) {
-          await new Promise((resolve) =>
-            setTimeout(resolve, 1500 * (attempt + 1))
-          );
-          continue;
-        }
-        throw err;
-      }
-    }
+    const abortSignal = AbortSignal.timeout(OVERALL_TIMEOUT_MS);
+    const response = await ai.models.generateContent({
+      model,
+      contents: JSON.stringify(caseWithoutImage),
+      config: {
+        systemInstruction: clinicalSystemInstruction,
+        responseMimeType: "application/json",
+        responseJsonSchema: clinicalAnalysisJsonSchema,
+        abortSignal,
+      },
+    });
 
     if (!response?.text) {
       return publicError(
@@ -178,6 +199,12 @@ export async function POST(request: Request) {
       `[Dentarith] /api/analyze: Gemini API request failed (status: ${status || "unknown"}):`,
       message
     );
+    if (isTimeoutError(error)) {
+      return publicError(
+        "AI analysis timed out. Please try again.",
+        504
+      );
+    }
     return publicError(
       "AI analysis is temporarily unavailable. Please try again.",
       502

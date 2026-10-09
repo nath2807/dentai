@@ -71,6 +71,7 @@ function CaseDetailContent({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestCase),
+        signal: AbortSignal.timeout(35000),
       });
 
       const payload = (await response.json()) as ClinicalAnalysis | { error?: string };
@@ -92,8 +93,15 @@ function CaseDetailContent({
 
       setStoredCase(updated);
     } catch (err) {
+      const isTimeout =
+        err instanceof Error &&
+        (err.name === "TimeoutError" || err.name === "AbortError");
       setReanalyzeError(
-        err instanceof Error ? err.message : "Re-analysis could not be completed."
+        isTimeout
+          ? "Analysis timed out. Please check your connection and try again."
+          : err instanceof Error
+          ? err.message
+          : "Re-analysis could not be completed."
       );
     } finally {
       setIsReanalyzing(false);
