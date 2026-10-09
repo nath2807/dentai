@@ -11,6 +11,7 @@ import {
   type StoredCase,
 } from "@/lib/case-storage";
 import type { ClinicalAnalysis, EvidenceMapItem } from "@/lib/clinical-analysis";
+import { ClinicianReviewTrace } from "@/components/clinician-review-trace";
 
 export default function CaseDetailPage(props: {
   params: Promise<{ id: string }>;
@@ -86,6 +87,7 @@ function CaseDetailContent({
         analysis: payload as ClinicalAnalysis,
         status: "analyzed",
         analysisStatus: "current",
+        reviewStatus: "needs_review",
       });
 
       setStoredCase(updated);
@@ -238,6 +240,21 @@ function CaseDetailContent({
           </div>
         )}
 
+        {/* Synthetic Benchmark Educational Disclaimer */}
+        {caseId.startsWith("CASE-BENCH") && (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50/80 p-4 text-xs text-amber-950">
+            <Icon name="spark" size={18} />
+            <div className="space-y-0.5">
+              <p className="font-bold uppercase tracking-wider text-amber-900">
+                Synthetic Educational Benchmark Case (Non-Clinical Demonstration)
+              </p>
+              <p className="leading-relaxed text-amber-800">
+                This case is an artificially constructed educational simulation created for software demonstration and testing purposes. Clinician review traces and diagnostic entries are simulated personas, not real clinician endorsements or clinically validated diagnostic standards.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* 1. Case Information & Clinical Presentation */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-4">
@@ -249,9 +266,24 @@ function CaseDetailContent({
                 Age: <span className="font-semibold text-slate-800">{caseData.caseInformation.age}</span> • Sex: <span className="font-semibold text-slate-800">{caseData.caseInformation.sex}</span> • Tooth/Region: <span className="font-semibold text-slate-800">{caseData.toothAssessment?.toothNumber || caseData.clinicalExamination.toothOrRegion}</span>
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 border border-slate-200">
                 Status: {status}
+              </span>
+              <span
+                className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
+                  storedCase.reviewStatus === "reviewed"
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                    : storedCase.reviewStatus === "needs_review"
+                    ? "border-amber-300 bg-amber-50 text-amber-800"
+                    : "border-slate-300 bg-slate-50 text-slate-700"
+                }`}
+              >
+                {storedCase.reviewStatus === "reviewed"
+                  ? "Reviewed"
+                  : storedCase.reviewStatus === "needs_review"
+                  ? "Needs Review"
+                  : "Review Pending"}
               </span>
               {analysis && (
                 <span
@@ -350,9 +382,34 @@ function CaseDetailContent({
           </div>
         </section>
 
+        {/* Clinician Review & Decision Trace */}
+        <ClinicianReviewTrace
+          storedCase={storedCase}
+          analysis={analysis}
+          onCaseUpdated={setStoredCase}
+        />
+
         {/* 2. AI Clinical Reasoning Section */}
         {analysis ? (
-          <AnalysisView analysis={analysis} />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-xl bg-teal-800 px-5 py-3 text-white shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <Icon name="spark" size={18} />
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-wider">
+                    Dentarith AI Clinical Intelligence
+                  </h2>
+                  <p className="text-[10px] text-teal-100">
+                    Preserved original diagnostic hypotheses &bull; Assistive only &bull; Non-autonomous
+                  </p>
+                </div>
+              </div>
+              <span className="rounded-full bg-teal-700 px-2.5 py-0.5 text-[10px] font-semibold text-teal-100 border border-teal-600">
+                AI Output (Preserved)
+              </span>
+            </div>
+            <AnalysisView analysis={analysis} />
+          </div>
         ) : (
           <section className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-teal-50 text-teal-700">
@@ -523,10 +580,18 @@ function AnalysisView({
               </div>
             )}
             <p><span className="font-bold text-slate-900">Clinical Reasoning: </span>{leadingDiagnosis.reasoning}</p>
-            <p><span className="font-bold text-slate-900">Confidence Assessment: </span><span className="text-slate-600">{leadingDiagnosis.confidenceReason}</span></p>
+            <p><span className="font-bold text-slate-900">Diagnostic Uncertainty: </span><span className="text-slate-600">{leadingDiagnosis.confidenceReason}</span></p>
             {leadingDiagnosis.supportingFindings.length > 0 && (
-              <p><span className="font-bold text-emerald-800">Supporting Findings: </span>{leadingDiagnosis.supportingFindings.join("; ")}</p>
+              <p><span className="font-bold text-emerald-800">Supporting Evidence (Findings For): </span>{leadingDiagnosis.supportingFindings.join("; ")}</p>
             )}
+            <p>
+              <span className="font-bold text-slate-900">Evidence Against / Contradicting Findings: </span>
+              {leadingDiagnosis.contradictingFindings && leadingDiagnosis.contradictingFindings.length > 0 ? (
+                <span className="text-red-700">{leadingDiagnosis.contradictingFindings.join("; ")}</span>
+              ) : (
+                <span className="text-slate-500 italic">None identified in recorded presentation</span>
+              )}
+            </p>
           </div>
         </section>
       )}
@@ -539,14 +604,24 @@ function AnalysisView({
           </h3>
           <div className="space-y-2">
             {secondaryDiagnoses.map((sec, idx) => (
-              <div key={`sec-${idx}`} className="rounded-lg border border-slate-200 bg-white p-4 text-xs">
+              <div key={`sec-${idx}`} className="rounded-lg border border-slate-200 bg-white p-4 text-xs space-y-1.5">
                 <div className="flex items-center justify-between">
                   <h4 className="font-bold text-slate-900">Rank #{sec.rank}: {sec.diagnosis}</h4>
                   <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-700">
                     {sec.diagnosticCategory} • {sec.likelihood}
                   </span>
                 </div>
-                <p className="mt-2 text-slate-700">{sec.reasoning}</p>
+                <p className="text-slate-700"><span className="font-semibold text-slate-900">Reasoning: </span>{sec.reasoning}</p>
+                {sec.supportingFindings && sec.supportingFindings.length > 0 && (
+                  <p className="text-emerald-800"><span className="font-semibold">Supporting Evidence: </span>{sec.supportingFindings.join("; ")}</p>
+                )}
+                <p className="text-slate-700">
+                  <span className="font-semibold text-slate-900">Evidence Against: </span>
+                  {sec.contradictingFindings && sec.contradictingFindings.length > 0
+                    ? sec.contradictingFindings.join("; ")
+                    : "None identified"}
+                </p>
+                <p className="text-slate-600"><span className="font-semibold text-slate-900">Uncertainty: </span>{sec.confidenceReason}</p>
               </div>
             ))}
           </div>
@@ -580,11 +655,29 @@ function AnalysisView({
         </h2>
         <div className="mt-3 space-y-2.5">
           {analysis.differentialDiagnosis.map((item, idx) => (
-            <div key={`diff-${idx}`} className="rounded-lg border border-slate-200 bg-white p-3.5 text-xs">
+            <div key={`diff-${idx}`} className="rounded-lg border border-slate-200 bg-white p-3.5 text-xs space-y-1">
               <h4 className="font-bold text-slate-900">{item.diagnosis}</h4>
-              <p className="mt-1 text-slate-600"><span className="font-semibold">Why considered:</span> {item.whyConsidered}</p>
+              <p className="text-slate-700"><span className="font-semibold">Why considered:</span> {item.whyConsidered}</p>
+              {(item.supportingEvidence?.length > 0 || item.supportingFindings?.length > 0) && (
+                <p className="text-emerald-800">
+                  <span className="font-semibold">Supporting Evidence: </span>
+                  {(item.supportingEvidence?.length ? item.supportingEvidence : item.supportingFindings).join("; ")}
+                </p>
+              )}
+              {item.evidenceAgainst && item.evidenceAgainst.length > 0 && (
+                <p className="text-red-700">
+                  <span className="font-semibold">Evidence Against: </span>
+                  {item.evidenceAgainst.join("; ")}
+                </p>
+              )}
+              {item.missingEvidence && item.missingEvidence.length > 0 && (
+                <p className="text-amber-800">
+                  <span className="font-semibold">Missing Evidence: </span>
+                  {item.missingEvidence.join("; ")}
+                </p>
+              )}
               {item.whatWouldChangeRanking && (
-                <p className="mt-1 text-indigo-900"><span className="font-semibold">What would change ranking:</span> {item.whatWouldChangeRanking}</p>
+                <p className="text-indigo-900"><span className="font-semibold">What would change ranking:</span> {item.whatWouldChangeRanking}</p>
               )}
             </div>
           ))}

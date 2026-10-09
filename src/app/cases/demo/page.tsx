@@ -13,11 +13,16 @@ import {
   type MissingInformationItem,
 } from "@/lib/clinical-analysis";
 
+import { BENCHMARK_CASES } from "@/lib/benchmark-cases";
+import { type StoredCase, saveCase } from "@/lib/case-storage";
+
 const analysisKey = "dentai-clinical-analysis";
 
 export default function DemoResultsPage() {
-  const [analysis, setAnalysis] = useState<ClinicalAnalysisType | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [selectedBenchmarkIndex, setSelectedBenchmarkIndex] = useState<number>(0);
+  const [sessionCase, setSessionCase] = useState<ClinicalAnalysisType | null>(null);
+  const [useSessionCase, setUseSessionCase] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -25,7 +30,10 @@ export default function DemoResultsPage() {
       if (saved) {
         try {
           const result = ClinicalAnalysis.safeParse(JSON.parse(saved));
-          if (result.success) setAnalysis(result.data);
+          if (result.success) {
+            setSessionCase(result.data);
+            setUseSessionCase(true);
+          }
         } catch {
           window.sessionStorage.removeItem(analysisKey);
         }
@@ -35,6 +43,15 @@ export default function DemoResultsPage() {
     return () => window.clearTimeout(timer);
   }, []);
 
+  const activeBenchmark: StoredCase = BENCHMARK_CASES[selectedBenchmarkIndex] || BENCHMARK_CASES[0];
+  const activeAnalysis: ClinicalAnalysisType | null = useSessionCase
+    ? sessionCase
+    : activeBenchmark.analysis;
+
+  function handleOpenInWorkspace(benchmark: StoredCase) {
+    saveCase(benchmark);
+  }
+
   return (
     <AppShell activeItem="New Case">
       <div className="mx-auto max-w-5xl space-y-7">
@@ -42,13 +59,13 @@ export default function DemoResultsPage() {
         <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
-              Clinical Decision Support / Case Assessment
+              Clinical Decision Support / Benchmark Demonstration
             </p>
             <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-              Clinical Reasoning &amp; Differential Review
+              Clinical Reasoning &amp; Benchmark Cases
             </h1>
             <p className="mt-1 text-xs text-slate-500">
-              Evidence-traceable diagnostic suggestions for licensed clinician review.
+              Explore synthetic educational reference dental cases, AI diagnostic reasoning, differentials, and clinician review traces.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -61,19 +78,115 @@ export default function DemoResultsPage() {
             </Link>
             <Link
               href="/cases/new"
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-teal-700 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-800"
             >
-              <Icon name="arrow" size={15} />
-              Case Form
+              <Icon name="plus" size={15} />
+              New Case Form
             </Link>
           </div>
         </div>
 
+        {/* Benchmark Selector Tabs */}
+        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
+          <div className="mb-2 flex items-center justify-between px-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Select Reference Dental Case:
+            </span>
+            <span className="text-[11px] text-amber-800 font-medium">
+              Synthetic Educational Examples (Non-Clinical Demonstration)
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {BENCHMARK_CASES.map((bCase, idx) => {
+              const isSelected = !useSessionCase && selectedBenchmarkIndex === idx;
+              const tooth = bCase.caseData.toothAssessment?.toothNumber || "Tooth";
+              const primaryDiag = bCase.analysis?.possibleDiagnoses[0]?.diagnosis || "Case";
+              return (
+                <button
+                  key={bCase.id}
+                  onClick={() => {
+                    setSelectedBenchmarkIndex(idx);
+                    setUseSessionCase(false);
+                  }}
+                  className={`rounded-lg px-3.5 py-2 text-left text-xs transition ${
+                    isSelected
+                      ? "border border-teal-600 bg-teal-50 font-bold text-teal-950 shadow-xs"
+                      : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                  }`}
+                >
+                  <div className="font-semibold">
+                    Tooth #{tooth}: {primaryDiag}
+                  </div>
+                  <div className="text-[10px] text-slate-500 font-normal">
+                    {bCase.id} • {bCase.caseData.caseInformation.age}y {bCase.caseData.caseInformation.sex}
+                  </div>
+                </button>
+              );
+            })}
+
+            {sessionCase && (
+              <button
+                onClick={() => setUseSessionCase(true)}
+                className={`rounded-lg px-3.5 py-2 text-left text-xs transition ${
+                  useSessionCase
+                    ? "border border-indigo-600 bg-indigo-50 font-bold text-indigo-950 shadow-xs"
+                    : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                }`}
+              >
+                <div className="font-semibold">Current Form Session Case</div>
+                <div className="text-[10px] text-slate-500 font-normal">
+                  Recently analyzed in browser
+                </div>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Benchmark Case Summary Banner & Action Links */}
+        {!useSessionCase && (
+          <div className="flex flex-col gap-4 rounded-xl border border-amber-300 bg-amber-50/60 p-4.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="rounded-md bg-amber-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                  {activeBenchmark.id} (Synthetic Educational)
+                </span>
+                <span className="text-xs font-bold text-slate-900">
+                  Chief Complaint: &ldquo;{activeBenchmark.caseData.chiefComplaint}&rdquo;
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-600">
+                Patient: {activeBenchmark.caseData.caseInformation.age}y {activeBenchmark.caseData.caseInformation.sex} • Tooth #{activeBenchmark.caseData.toothAssessment?.toothNumber} • Sensibility: {activeBenchmark.caseData.pulpalAssessment?.coldTest}
+              </p>
+              <p className="text-[10px] text-amber-800 italic">
+                Synthetic educational example for software workflow evaluation — not a validated medical diagnosis or real patient record.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href={`/cases/${encodeURIComponent(activeBenchmark.id)}`}
+                onClick={() => handleOpenInWorkspace(activeBenchmark)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
+              >
+                <Icon name="spark" size={13} />
+                Open Full Case Workspace
+              </Link>
+              <Link
+                href={`/cases/${encodeURIComponent(activeBenchmark.id)}/report`}
+                onClick={() => handleOpenInWorkspace(activeBenchmark)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                <Icon name="report" size={13} />
+                View Report
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Content Body */}
         {isLoading ? (
           <LoadingState />
-        ) : analysis ? (
-          <AnalysisContent analysis={analysis} />
+        ) : activeAnalysis ? (
+          <AnalysisContent analysis={activeAnalysis} />
         ) : (
           <EmptyState />
         )}
@@ -93,7 +206,7 @@ export default function DemoResultsPage() {
 function LoadingState() {
   return (
     <div role="status" className="rounded-xl border border-slate-200 bg-white p-12 text-center text-xs text-slate-500">
-      <div className="mx-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+      <div className="mr-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
       Loading clinical assessment and reasoning...
     </div>
   );

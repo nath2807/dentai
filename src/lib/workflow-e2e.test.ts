@@ -3,6 +3,8 @@ import {
   deleteCase,
   getCase,
   getCases,
+  markAnalysisStale,
+  reviewCase,
   saveCase,
   updateCase,
 } from "./case-storage";
@@ -165,23 +167,41 @@ describe("End-to-End Case Management Workflow (Phase 3)", () => {
       analysis: syntheticAnalysis,
       status: "analyzed",
       analysisStatus: "current",
+      reviewStatus: "needs_review",
     });
     expect(analyzedCase?.status).toBe("analyzed");
     expect(analyzedCase?.analysisStatus).toBe("current");
+    expect(analyzedCase?.reviewStatus).toBe("needs_review");
     expect(analyzedCase?.analysis?.possibleDiagnoses[0].diagnosis).toBe(
       "Symptomatic Irreversible Pulpitis"
     );
+
+    // 4b. Clinician reviews and records decision trace
+    const reviewedCase = reviewCase("CASE-999", {
+      status: "reviewed",
+      reviewedBy: "Dr. Lisa Cuddy, DDS",
+      notes: "Thermal lingering verified clinically.",
+      corrections: {
+        agreedWithAiDiagnosis: true,
+        finalDiagnosis: "Symptomatic Irreversible Pulpitis",
+        treatmentPlan: "Endodontic therapy Tooth 36",
+      },
+    });
+    expect(reviewedCase?.reviewStatus).toBe("reviewed");
+    expect(reviewedCase?.status).toBe("reviewed");
+    expect(reviewedCase?.review?.corrections?.finalDiagnosis).toBe("Symptomatic Irreversible Pulpitis");
 
     // 5. Verify case appears in case list / dashboard
     const allCases = getCases();
     expect(allCases).toHaveLength(1);
     expect(allCases[0].id).toBe("CASE-999");
-    expect(allCases[0].status).toBe("analyzed");
+    expect(allCases[0].reviewStatus).toBe("reviewed");
 
     // 6. Reload / simulate new browser session
     const freshFetch = getCase("CASE-999");
     expect(freshFetch).not.toBeNull();
     expect(freshFetch?.caseData.chiefComplaint).toBe("Sharp pain with cold drinks and chewing");
+    expect(freshFetch?.review?.reviewedBy).toBe("Dr. Lisa Cuddy, DDS");
 
     // 7. Edit clinical information (e.g. pain severity changed)
     const updatedFormValues = {
@@ -193,18 +213,19 @@ describe("End-to-End Case Management Workflow (Phase 3)", () => {
       null
     ) as unknown as ClinicalCase;
 
-    // 8. Save edits without re-analyzing -> analysis becomes stale
+    // 8. Save edits without re-analyzing -> analysis becomes stale and reviewStatus becomes needs_review
     updateCase("CASE-999", {
       caseData: editedCase,
       formValues: updatedFormValues as unknown as Record<string, string>,
-      analysisStatus: "stale",
     });
+    markAnalysisStale("CASE-999");
 
     const retrievedAfterEdit = getCase("CASE-999");
     expect(retrievedAfterEdit?.caseData.chiefComplaint).toBe(
       "Sharp pain with cold drinks, now throbbing at night"
     );
     expect(retrievedAfterEdit?.analysisStatus).toBe("stale");
+    expect(retrievedAfterEdit?.reviewStatus).toBe("needs_review");
     expect(retrievedAfterEdit?.analysis).not.toBeNull();
 
     // 9. Re-analyze case with fresh reasoning
@@ -215,13 +236,31 @@ describe("End-to-End Case Management Workflow (Phase 3)", () => {
     const reanalyzed = updateCase("CASE-999", {
       analysis: freshAnalysis,
       analysisStatus: "current",
+      reviewStatus: "needs_review",
     });
     expect(reanalyzed?.analysisStatus).toBe("current");
+    expect(reanalyzed?.reviewStatus).toBe("needs_review");
     expect(reanalyzed?.analysis?.summary).toContain("nocturnal throbbing");
 
-    // 10. Generate Report & verify completeness and safety notice
+    // 9b. Clinician re-reviews updated case and re-confirms decision trace
+    const finalReviewed = reviewCase("CASE-999", {
+      status: "reviewed",
+      reviewedBy: "Dr. Lisa Cuddy, DDS",
+      corrections: {
+        agreedWithAiDiagnosis: true,
+        finalDiagnosis: "Symptomatic Irreversible Pulpitis with Nocturnal Throbbing",
+        treatmentPlan: "Immediate pulpectomy followed by RCT and full crown",
+      },
+    });
+    expect(finalReviewed?.reviewStatus).toBe("reviewed");
+
+    // 10. Generate Report & verify completeness, review trace, and safety notice
     const reportCase = getCase("CASE-999");
     expect(reportCase?.analysis).not.toBeNull();
+    expect(reportCase?.reviewStatus).toBe("reviewed");
+    expect(reportCase?.review?.corrections?.finalDiagnosis).toBe(
+      "Symptomatic Irreversible Pulpitis with Nocturnal Throbbing"
+    );
     expect(reportCase?.analysis?.possibleDiagnoses[0].rank).toBe(1);
     expect(reportCase?.analysis?.evidenceMap.length).toBeGreaterThan(0);
     expect(reportCase?.analysis?.missingInformation[0].importance).toBe("critical");

@@ -71,7 +71,11 @@ function ClinicalReportContent({
     );
   }
 
-  const { caseData, analysis, analysisStatus, createdAt } = storedCase;
+  const { caseData, analysis, analysisStatus, createdAt, review } = storedCase;
+  const currentReviewStatus =
+    storedCase.reviewStatus ||
+    review?.status ||
+    (storedCase.status === "reviewed" ? "reviewed" : "needs_review");
   const isStale = analysisStatus === "stale" && Boolean(analysis);
 
   if (!analysis) {
@@ -123,9 +127,25 @@ function ClinicalReportContent({
           <span className="text-xs text-slate-500">
             Case: <strong className="text-slate-800">{caseId}</strong>
           </span>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${
+              currentReviewStatus === "reviewed"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : currentReviewStatus === "needs_review"
+                ? "border-amber-300 bg-amber-50 text-amber-800"
+                : "border-slate-300 bg-slate-50 text-slate-700"
+            }`}
+          >
+            Review: {currentReviewStatus.replace("_", " ")}
+          </span>
           {isStale && (
             <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
               ⚠️ Stale Clinical Data
+            </span>
+          )}
+          {caseId.startsWith("CASE-BENCH") && (
+            <span className="rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+              Synthetic Benchmark (Educational Demo)
             </span>
           )}
         </div>
@@ -145,6 +165,21 @@ function ClinicalReportContent({
       <div className="print-page mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-8 shadow-sm print:rounded-none print:border-none print:p-0 print:shadow-none sm:p-12">
         {/* Document Header */}
         <header className="border-b-2 border-slate-900 pb-5">
+          {caseId.startsWith("CASE-BENCH") && (
+            <div className="mb-4 rounded-lg border-2 border-amber-500 bg-amber-50 p-3 text-xs text-amber-950">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-amber-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+                  Synthetic Educational Case
+                </span>
+                <span className="font-bold text-amber-900">
+                  Non-Clinical Demonstration — Not a Validated Medical Reference Standard
+                </span>
+              </div>
+              <p className="mt-1 leading-relaxed text-[11px] text-amber-800">
+                This case is an artificially constructed educational simulation created for software demonstration and testing purposes only. Any reviewer notes, diagnostic assertions, or clinical details represent simulated training personas and must NOT be interpreted as real clinician endorsements or validated diagnostic standards.
+              </p>
+            </div>
+          )}
           <div className="flex items-start justify-between">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-teal-800">
@@ -154,23 +189,41 @@ function ClinicalReportContent({
                 CLINICAL DECISION SUPPORT REPORT
               </h1>
               <p className="mt-0.5 text-xs text-slate-500">
-                Assistive diagnostic evaluation for licensed clinician review
+                Assistive diagnostic evaluation with clinician review trace
               </p>
             </div>
-            <div className="text-right text-xs">
+            <div className="text-right text-xs space-y-0.5">
               <p className="font-bold text-slate-900">Case ID: {caseId}</p>
               <p className="text-slate-500">
-                Date: {new Date().toLocaleDateString(undefined, { dateStyle: "medium" })}
+                Report Date: {new Date().toLocaleDateString(undefined, { dateStyle: "medium" })}
               </p>
               <p className="text-[11px] text-slate-400">
-                Recorded: {new Date(createdAt).toLocaleDateString()}
+                Case Recorded: {new Date(createdAt).toLocaleDateString()}
               </p>
+              <div className="pt-1">
+                <span
+                  className={`inline-block rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                    currentReviewStatus === "reviewed"
+                      ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                      : currentReviewStatus === "needs_review"
+                      ? "bg-amber-100 text-amber-900 border border-amber-300"
+                      : "bg-slate-100 text-slate-800 border border-slate-300"
+                  }`}
+                >
+                  Review Status: {currentReviewStatus.replace("_", " ")}
+                </span>
+              </div>
+              {review?.reviewedBy && (
+                <p className="text-[10px] text-slate-600 font-medium">
+                  Attending: {review.reviewedBy}
+                </p>
+              )}
             </div>
           </div>
 
           {isStale && (
-            <div className="mt-3 rounded border border-amber-300 bg-amber-50 p-2 text-xs font-semibold text-amber-900">
-              Note: Clinical findings were updated after this reasoning analysis was generated. Re-analysis recommended.
+            <div className="mt-3 rounded border-2 border-amber-400 bg-amber-50 p-2.5 text-xs font-semibold text-amber-900">
+              ⚠️ STALE ANALYSIS WARNING: Case clinical findings were modified after this reasoning analysis was generated. This report is based on earlier data and re-analysis is strongly recommended.
             </div>
           )}
         </header>
@@ -248,10 +301,103 @@ function ClinicalReportContent({
             </div>
           </section>
 
-          {/* Section 3: AI Clinical Reasoning & Diagnostic Hierarchy */}
+          {/* Section 3: Clinician Review & Decision Trace */}
+          <section className="page-break-inside-avoid rounded-xl border-2 border-indigo-700 bg-indigo-50/20 p-4">
+            <div className="flex items-center justify-between border-b border-indigo-200 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="rounded bg-indigo-800 px-2 py-0.5 font-bold uppercase tracking-wider text-white text-[10px]">
+                  3. Clinician Review &amp; Decision Trace
+                </span>
+                <span className="text-xs font-bold text-slate-950">
+                  Licensed Attending Dentist Determination
+                </span>
+              </div>
+              <span
+                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                  currentReviewStatus === "reviewed"
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    : currentReviewStatus === "needs_review"
+                    ? "bg-amber-100 text-amber-900 border border-amber-300"
+                    : "bg-slate-100 text-slate-800 border border-slate-300"
+                }`}
+              >
+                Status: {currentReviewStatus.replace("_", " ")}
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 text-[11px]">
+              <div>
+                <p><span className="font-bold text-slate-900">Reviewing Clinician:</span> {review?.reviewedBy || "Attending Dental Professional"}</p>
+                <p className="mt-1">
+                  <span className="font-bold text-slate-900">Decision Recorded:</span>{" "}
+                  {review?.reviewedAt ? new Date(review.reviewedAt).toLocaleString() : "Review pending / Not yet finalized"}
+                </p>
+                <p className="mt-1">
+                  <span className="font-bold text-slate-900">Diagnostic Concurrence:</span>{" "}
+                  <span className="font-semibold text-indigo-900">
+                    {review?.corrections?.agreedWithAiDiagnosis
+                      ? "Concurred with AI Leading Hypothesis"
+                      : review?.corrections?.finalDiagnosis
+                      ? "Clinician Override / Custom Clinical Diagnosis"
+                      : "Pending review"}
+                  </span>
+                </p>
+              </div>
+
+              <div>
+                <p>
+                  <span className="font-bold text-slate-900">Confirmed Clinician Diagnosis:</span>{" "}
+                  <span className="font-bold text-slate-950">
+                    {review?.corrections?.finalDiagnosis || leadingDiagnosis.diagnosis}
+                  </span>
+                </p>
+                {review?.corrections?.diagnosisNotes && (
+                  <p className="mt-1 text-slate-700">
+                    <span className="font-bold">Clinical Rationale:</span> {review.corrections.diagnosisNotes}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Confirmed Treatment Plan & Procedural Orders */}
+            <div className="mt-3 border-t border-indigo-100 pt-2.5 text-[11px]">
+              <span className="font-bold text-slate-900">Confirmed Treatment Plan: </span>
+              <span className="text-slate-800 font-medium">
+                {review?.corrections?.treatmentPlan || "To be formulated by attending clinician."}
+              </span>
+              {review?.corrections?.treatmentPlanNotes && (
+                <p className="mt-1 text-slate-600">
+                  <span className="font-bold">Treatment Rationale:</span> {review.corrections.treatmentPlanNotes}
+                </p>
+              )}
+            </div>
+
+            {/* Additional Observations & Notes if any */}
+            {(review?.corrections?.additionalObservations || review?.notes) && (
+              <div className="mt-2.5 grid grid-cols-2 gap-3 border-t border-indigo-100 pt-2 text-[11px]">
+                {review?.corrections?.additionalObservations && (
+                  <p>
+                    <span className="font-bold text-slate-900">Additional Observations:</span>{" "}
+                    {review.corrections.additionalObservations}
+                  </p>
+                )}
+                {review?.notes && (
+                  <p>
+                    <span className="font-bold text-slate-900">Clinician Notes:</span> {review.notes}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <p className="mt-2 text-[10px] text-slate-500 italic">
+              Notice: Clinician review documents the attending dental practitioner&apos;s independent clinical judgment and definitive decisions. It does not certify the algorithmic accuracy of assistive AI outputs.
+            </p>
+          </section>
+
+          {/* Section 4: AI Clinical Reasoning & Diagnostic Hierarchy */}
           <section className="page-break-inside-avoid">
             <h2 className="border-b border-slate-300 pb-1 font-bold uppercase tracking-wider text-teal-900 text-xs">
-              3. AI Clinical Reasoning &amp; Diagnostic Hierarchy
+              4. Dentarith AI Assistive Reasoning &amp; Diagnostic Hierarchy (Preserved Original)
             </h2>
 
             {/* Case Summary */}
@@ -287,10 +433,18 @@ function ClinicalReportContent({
                     <p><span className="font-bold text-slate-900">Why Ranked Highest: </span>{leadingDiagnosis.whyRanksHighest}</p>
                   )}
                   <p><span className="font-bold text-slate-900">Reasoning: </span>{leadingDiagnosis.reasoning}</p>
-                  <p><span className="font-bold text-slate-900">Confidence Assessment: </span>{leadingDiagnosis.confidenceReason}</p>
+                  <p><span className="font-bold text-slate-900">Diagnostic Uncertainty: </span>{leadingDiagnosis.confidenceReason}</p>
                   {leadingDiagnosis.supportingFindings.length > 0 && (
-                    <p><span className="font-bold text-emerald-800">Supporting Findings: </span>{leadingDiagnosis.supportingFindings.join("; ")}</p>
+                    <p><span className="font-bold text-emerald-800">Supporting Findings (Evidence For): </span>{leadingDiagnosis.supportingFindings.join("; ")}</p>
                   )}
+                  <p>
+                    <span className="font-bold text-slate-900">Evidence Against / Contradicting Findings: </span>
+                    {leadingDiagnosis.contradictingFindings && leadingDiagnosis.contradictingFindings.length > 0 ? (
+                      <span className="text-red-700">{leadingDiagnosis.contradictingFindings.join("; ")}</span>
+                    ) : (
+                      <span className="text-slate-500 italic">None identified</span>
+                    )}
+                  </p>
                 </div>
               </div>
             )}
@@ -299,10 +453,16 @@ function ClinicalReportContent({
             {secondaryDiagnoses.length > 0 && (
               <div className="mt-3">
                 <span className="font-bold text-slate-900">Secondary Considerations:</span>
-                <ul className="mt-1 space-y-1 pl-3">
+                <ul className="mt-1 space-y-1.5 pl-3">
                   {secondaryDiagnoses.map((sec, idx) => (
                     <li key={`sec-${idx}`}>
                       • <span className="font-semibold text-slate-900">Rank #{sec.rank}: {sec.diagnosis}</span> ({sec.diagnosticCategory}, {sec.likelihood} likelihood) — {sec.reasoning}
+                      {sec.supportingFindings && sec.supportingFindings.length > 0 && (
+                        <span className="text-emerald-800"> [Evidence for: {sec.supportingFindings.join("; ")}]</span>
+                      )}
+                      {sec.contradictingFindings && sec.contradictingFindings.length > 0 && (
+                        <span className="text-red-700"> [Evidence against: {sec.contradictingFindings.join("; ")}]</span>
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -310,11 +470,11 @@ function ClinicalReportContent({
             )}
           </section>
 
-          {/* Section 4: Evidence Map */}
+          {/* Section 5: Evidence Map */}
           {combinedEvidenceMap.length > 0 && (
             <section className="page-break-inside-avoid">
               <h2 className="border-b border-slate-300 pb-1 font-bold uppercase tracking-wider text-teal-900 text-xs">
-                4. Evidence Map (Finding → Interpretation → Relevance)
+                5. Evidence Map (Finding → Interpretation → Relevance)
               </h2>
               <table className="mt-2.5 w-full border-collapse border border-slate-200 text-left text-[11px]">
                 <thead>
@@ -337,29 +497,47 @@ function ClinicalReportContent({
             </section>
           )}
 
-          {/* Section 5: Differential Diagnoses */}
+          {/* Section 6: Differential Diagnoses */}
           <section className="page-break-inside-avoid">
             <h2 className="border-b border-slate-300 pb-1 font-bold uppercase tracking-wider text-teal-900 text-xs">
-              5. Differential Diagnosis Considerations
+              6. Differential Diagnosis Considerations
             </h2>
             <div className="mt-2.5 space-y-2">
               {analysis.differentialDiagnosis.map((diff, idx) => (
-                <div key={`diff-${idx}`} className="rounded border border-slate-200 p-2.5 bg-white">
+                <div key={`diff-${idx}`} className="rounded border border-slate-200 p-2.5 bg-white space-y-1">
                   <p className="font-bold text-slate-900">{diff.diagnosis}</p>
-                  <p className="mt-0.5 text-slate-700"><span className="font-semibold">Why Considered:</span> {diff.whyConsidered}</p>
+                  <p className="text-slate-700"><span className="font-semibold">Why Considered:</span> {diff.whyConsidered}</p>
+                  {(diff.supportingEvidence?.length > 0 || diff.supportingFindings?.length > 0) && (
+                    <p className="text-emerald-800">
+                      <span className="font-semibold">Supporting Evidence: </span>
+                      {(diff.supportingEvidence?.length ? diff.supportingEvidence : diff.supportingFindings).join("; ")}
+                    </p>
+                  )}
+                  {diff.evidenceAgainst && diff.evidenceAgainst.length > 0 && (
+                    <p className="text-red-700">
+                      <span className="font-semibold">Evidence Against: </span>
+                      {diff.evidenceAgainst.join("; ")}
+                    </p>
+                  )}
+                  {diff.missingEvidence && diff.missingEvidence.length > 0 && (
+                    <p className="text-amber-800">
+                      <span className="font-semibold">Missing Evidence: </span>
+                      {diff.missingEvidence.join("; ")}
+                    </p>
+                  )}
                   {diff.whatWouldChangeRanking && (
-                    <p className="mt-0.5 text-indigo-900"><span className="font-semibold">What would change ranking:</span> {diff.whatWouldChangeRanking}</p>
+                    <p className="text-indigo-900"><span className="font-semibold">What would change ranking:</span> {diff.whatWouldChangeRanking}</p>
                   )}
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Section 6: Missing Information & Investigations */}
+          {/* Section 7: Missing Information & Investigations */}
           <section className="page-break-inside-avoid grid grid-cols-2 gap-4">
             <div>
               <h2 className="border-b border-slate-300 pb-1 font-bold uppercase tracking-wider text-teal-900 text-xs">
-                6A. Missing Information Prioritization
+                7A. Missing Information Prioritization
               </h2>
               <ul className="mt-2 space-y-1.5">
                 {analysis.missingInformation.map((item, idx) => (
@@ -374,7 +552,7 @@ function ClinicalReportContent({
 
             <div>
               <h2 className="border-b border-slate-300 pb-1 font-bold uppercase tracking-wider text-teal-900 text-xs">
-                6B. Suggested Investigations
+                7B. Suggested Investigations
               </h2>
               <ul className="mt-2 space-y-1">
                 {analysis.suggestedInvestigations.map((inv, idx) => (
@@ -384,10 +562,10 @@ function ClinicalReportContent({
             </div>
           </section>
 
-          {/* Section 7: Decision-Changing Evidence & Treatment Considerations */}
+          {/* Section 8: Decision-Changing Evidence & Treatment Considerations */}
           <section className="page-break-inside-avoid">
             <h2 className="border-b border-slate-300 pb-1 font-bold uppercase tracking-wider text-teal-900 text-xs">
-              7. Decision-Changing Evidence &amp; Treatment Considerations
+              8. Decision-Changing Evidence &amp; Treatment Considerations
             </h2>
             {analysis.decisionChangingEvidence && analysis.decisionChangingEvidence.length > 0 && (
               <div className="mt-2">
@@ -410,7 +588,7 @@ function ClinicalReportContent({
             </div>
           </section>
 
-          {/* Section 8: Red Flags & Uncertainty */}
+          {/* Section 9: Red Flags & Uncertainty */}
           {(analysis.redFlags.length > 0 || analysis.uncertainty.length > 0) && (
             <section className="page-break-inside-avoid rounded border border-amber-200 bg-amber-50/40 p-3">
               {analysis.redFlags.length > 0 && (

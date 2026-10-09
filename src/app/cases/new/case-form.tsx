@@ -201,6 +201,7 @@ export default function CaseForm() {
         analysis: editingCase?.analysis || null,
         status: "draft",
         analysisStatus: editingCase?.analysis ? "stale" : "stale",
+        reviewStatus: editingCase?.analysis ? "needs_review" : "pending",
       });
     }
     setDraftMessage("Draft saved in this browser session.");
@@ -224,6 +225,7 @@ export default function CaseForm() {
       analysis: editingCase?.analysis || null,
       status: editingCase?.analysis ? "analyzed" : "draft",
       analysisStatus: editingCase?.analysis ? "stale" : "stale",
+      reviewStatus: editingCase?.analysis ? "needs_review" : "pending",
     });
     router.push(`/cases/${encodeURIComponent(caseId)}`);
   }
@@ -293,6 +295,7 @@ export default function CaseForm() {
         analysis: payload as ClinicalAnalysis,
         status: "analyzed",
         analysisStatus: "current",
+        reviewStatus: "needs_review",
       });
       window.sessionStorage.setItem("dentai-clinical-analysis", JSON.stringify(payload));
       window.sessionStorage.setItem("dentai-clinical-case", JSON.stringify(requestCase));

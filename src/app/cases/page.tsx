@@ -6,8 +6,10 @@ import { AppShell, Icon, StatCard } from "@/components/clinical-ui";
 import {
   getCases,
   deleteCase,
+  seedBenchmarkCases,
   type StoredCase,
   type CaseStatus,
+  type ReviewStatus,
 } from "@/lib/case-storage";
 
 export default function CasesPage() {
@@ -39,6 +41,10 @@ export default function CasesPage() {
       if (statusFilter !== "all") {
         if (statusFilter === "stale") {
           if (item.analysisStatus !== "stale") return false;
+        } else if (statusFilter === "reviewed") {
+          if (item.reviewStatus !== "reviewed" && item.status !== "reviewed") return false;
+        } else if (statusFilter === "needs_review") {
+          if (item.reviewStatus !== "needs_review") return false;
         } else if (item.status !== statusFilter) {
           return false;
         }
@@ -76,6 +82,11 @@ export default function CasesPage() {
     refreshCases();
   }
 
+  function handleLoadBenchmarks() {
+    seedBenchmarkCases(false);
+    refreshCases();
+  }
+
   return (
     <AppShell activeItem="Clinical Cases">
       <div className="mx-auto max-w-6xl space-y-7">
@@ -92,13 +103,22 @@ export default function CasesPage() {
               Manage saved cases, track Dentarith diagnostic analyses, and export clinical decision reports.
             </p>
           </div>
-          <Link
-            href="/cases/new"
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-800"
-          >
-            <Icon name="plus" size={16} />
-            New Clinical Case
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleLoadBenchmarks}
+              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3.5 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
+            >
+              <Icon name="spark" size={15} />
+              Load Benchmarks
+            </button>
+            <Link
+              href="/cases/new"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-800"
+            >
+              <Icon name="plus" size={16} />
+              New Clinical Case
+            </Link>
+          </div>
         </div>
 
         {/* Privacy Notice */}
@@ -162,9 +182,10 @@ export default function CasesPage() {
               className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600"
             >
               <option value="all">All Cases</option>
+              <option value="reviewed">Reviewed</option>
+              <option value="needs_review">Needs Review</option>
               <option value="analyzed">Analyzed</option>
               <option value="draft">Draft</option>
-              <option value="reviewed">Reviewed</option>
               <option value="stale">Stale Analysis</option>
             </select>
           </div>
@@ -172,7 +193,14 @@ export default function CasesPage() {
 
         {/* Case List or Empty State */}
         {filteredCases.length === 0 ? (
-          <EmptyCasesState hasTotalCases={totalCases > 0} onClearFilters={() => { setSearchQuery(""); setStatusFilter("all"); }} />
+          <EmptyCasesState
+            hasTotalCases={totalCases > 0}
+            onClearFilters={() => {
+              setSearchQuery("");
+              setStatusFilter("all");
+            }}
+            onLoadBenchmarks={handleLoadBenchmarks}
+          />
         ) : (
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
             <div className="overflow-x-auto">
@@ -239,7 +267,12 @@ export default function CasesPage() {
                           )}
                         </td>
                         <td className="px-4 py-4">
-                          <StatusBadge status={item.status} analysisStatus={item.analysisStatus} hasAnalysis={Boolean(item.analysis)} />
+                          <StatusBadge
+                            status={item.status}
+                            analysisStatus={item.analysisStatus}
+                            reviewStatus={item.reviewStatus}
+                            hasAnalysis={Boolean(item.analysis)}
+                          />
                         </td>
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
@@ -317,10 +350,12 @@ export default function CasesPage() {
 function StatusBadge({
   status,
   analysisStatus,
+  reviewStatus,
   hasAnalysis,
 }: {
   status: CaseStatus;
   analysisStatus?: "current" | "stale";
+  reviewStatus?: ReviewStatus;
   hasAnalysis: boolean;
 }) {
   if (analysisStatus === "stale") {
@@ -330,17 +365,24 @@ function StatusBadge({
       </span>
     );
   }
-  if (status === "analyzed" || hasAnalysis) {
+  if (reviewStatus === "reviewed" || status === "reviewed") {
     return (
-      <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
-        Analyzed
+      <span className="inline-flex items-center rounded-full border border-emerald-400 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+        Reviewed
       </span>
     );
   }
-  if (status === "reviewed") {
+  if (reviewStatus === "needs_review") {
     return (
-      <span className="inline-flex items-center rounded-full border border-blue-300 bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-800">
-        Reviewed
+      <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+        Needs Review
+      </span>
+    );
+  }
+  if (status === "analyzed" || hasAnalysis) {
+    return (
+      <span className="inline-flex items-center rounded-full border border-teal-300 bg-teal-50 px-2.5 py-0.5 text-[10px] font-bold text-teal-800">
+        Analyzed
       </span>
     );
   }
@@ -354,9 +396,11 @@ function StatusBadge({
 function EmptyCasesState({
   hasTotalCases,
   onClearFilters,
+  onLoadBenchmarks,
 }: {
   hasTotalCases: boolean;
   onClearFilters: () => void;
+  onLoadBenchmarks: () => void;
 }) {
   return (
     <div className="flex min-h-[330px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
@@ -369,7 +413,7 @@ function EmptyCasesState({
       <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
         {hasTotalCases
           ? "No saved cases match your current search query or status filter."
-          : "Create your first dental consultation to capture findings, request decision-support analysis, and generate reports."}
+          : "Create your first dental consultation or load vetted reference benchmarks to explore decision-support reasoning."}
       </p>
       {hasTotalCases ? (
         <button
@@ -379,13 +423,22 @@ function EmptyCasesState({
           Clear Filters
         </button>
       ) : (
-        <Link
-          href="/cases/new"
-          className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800"
-        >
-          <Icon name="plus" size={16} />
-          New Clinical Case
-        </Link>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/cases/new"
+            className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800"
+          >
+            <Icon name="plus" size={16} />
+            New Clinical Case
+          </Link>
+          <button
+            onClick={onLoadBenchmarks}
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-teal-300 bg-teal-50 px-4 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
+          >
+            <Icon name="spark" size={15} />
+            Load Benchmark Cases
+          </button>
+        </div>
       )}
     </div>
   );

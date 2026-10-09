@@ -141,15 +141,28 @@ export default function ReportsPage() {
                           )}
                         </td>
                         <td className="px-4 py-4">
-                          {isStale ? (
-                            <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
-                              Stale Data
+                          <div className="flex flex-col gap-1 items-start">
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                                item.reviewStatus === "reviewed" || item.status === "reviewed"
+                                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                                  : item.reviewStatus === "needs_review"
+                                  ? "border-amber-300 bg-amber-50 text-amber-800"
+                                  : "border-slate-300 bg-slate-50 text-slate-700"
+                              }`}
+                            >
+                              {item.reviewStatus === "reviewed" || item.status === "reviewed"
+                                ? "Reviewed"
+                                : item.reviewStatus === "needs_review"
+                                ? "Needs Review"
+                                : "Pending"}
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
-                              Current
-                            </span>
-                          )}
+                            {isStale && (
+                              <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-900">
+                                ⚠️ Stale Data
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-5 py-4 text-right">
                           <div className="flex items-center justify-end gap-2">
