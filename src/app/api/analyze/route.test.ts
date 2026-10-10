@@ -182,6 +182,20 @@ describe("POST /api/analyze", () => {
     );
   });
 
+  it("does not send thinkingConfig in generateContent request by default", async () => {
+    generateContent.mockResolvedValue({ text: JSON.stringify(validAnalysis) });
+    const response = await POST(
+      new Request("http://localhost/api/analyze", {
+        method: "POST",
+        body: JSON.stringify(clinicalCase),
+      })
+    );
+
+    expect(response.status).toBe(200);
+    const request = generateContent.mock.calls[0][0];
+    expect(request.config.thinkingConfig).toBeUndefined();
+  });
+
   it("allows configuring model through GEMINI_MODEL environment variable", async () => {
     process.env.GEMINI_MODEL = "gemini-custom-pro";
     generateContent.mockResolvedValue({ text: JSON.stringify(validAnalysis) });

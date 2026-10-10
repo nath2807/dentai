@@ -70,6 +70,8 @@ export default function CaseForm() {
   const searchParams = useSearchParams();
   const editId = searchParams.get("id");
   const formRef = useRef<HTMLFormElement>(null);
+  const analyzeRequestSeqRef = useRef(0);
+  const analyzeInFlightRef = useRef(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [fileName, setFileName] = useState("");
   const [radiograph, setRadiograph] = useState<Radiograph | null>(null);
@@ -256,6 +258,8 @@ export default function CaseForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (analyzeInFlightRef.current) return;
+
     const values = readValues();
     const clinicalCase = normalizeClinicalCase(values, radiograph);
     const result = clinicalCaseSchema.safeParse(clinicalCase);
@@ -267,7 +271,9 @@ export default function CaseForm() {
     }
 
     setErrors({});
+    analyzeInFlightRef.current = true;
     setIsAnalyzing(true);
+    const requestSeq = ++analyzeRequestSeqRef.current;
     window.localStorage.removeItem(draftKey);
     const requestCase = JSON.parse(
       JSON.stringify(result.data, (key, value) => (key === "dataUrl" ? undefined : value))
@@ -288,6 +294,9 @@ export default function CaseForm() {
             : "Analysis could not be completed."
         );
       }
+      if (requestSeq !== analyzeRequestSeqRef.current) {
+        return;
+      }
       const caseId = requestCase.caseInformation.caseId;
       saveCase({
         id: caseId,
@@ -302,7 +311,9 @@ export default function CaseForm() {
       window.sessionStorage.setItem("dentai-clinical-case", JSON.stringify(requestCase));
       router.push(`/cases/${encodeURIComponent(caseId)}`);
     } catch (error) {
-      setIsAnalyzing(false);
+      if (requestSeq !== analyzeRequestSeqRef.current) {
+        return;
+      }
       const isTimeout =
         error instanceof Error &&
         (error.name === "TimeoutError" || error.name === "AbortError");
@@ -315,6 +326,11 @@ export default function CaseForm() {
           ? error.message
           : "Analysis could not be completed. Please try again.",
       });
+    } finally {
+      if (requestSeq === analyzeRequestSeqRef.current) {
+        analyzeInFlightRef.current = false;
+        setIsAnalyzing(false);
+      }
     }
   }
 
