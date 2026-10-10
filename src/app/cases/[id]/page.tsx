@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, Suspense } from "react";
+import { useEffect, useState, use, Suspense, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell, Icon } from "@/components/clinical-ui";
@@ -43,6 +43,8 @@ function CaseDetailContent({
   const [storedCase, setStoredCase] = useState<StoredCase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const reanalyzeRequestSeqRef = useRef(0);
+  const reanalyzeInFlightRef = useRef(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reanalyzeError, setReanalyzeError] = useState("");
 
@@ -56,7 +58,9 @@ function CaseDetailContent({
   }, [caseId]);
 
   async function handleReanalyze() {
-    if (!storedCase) return;
+    if (!storedCase || reanalyzeInFlightRef.current) return;
+    reanalyzeInFlightRef.current = true;
+    const requestSeq = ++reanalyzeRequestSeqRef.current;
     setIsReanalyzing(true);
     setReanalyzeError("");
 
@@ -82,6 +86,9 @@ function CaseDetailContent({
             : "Re-analysis failed."
         );
       }
+      if (requestSeq !== reanalyzeRequestSeqRef.current) {
+        return;
+      }
 
       const updated = saveCase({
         ...storedCase,
@@ -93,6 +100,9 @@ function CaseDetailContent({
 
       setStoredCase(updated);
     } catch (err) {
+      if (requestSeq !== reanalyzeRequestSeqRef.current) {
+        return;
+      }
       const isTimeout =
         err instanceof Error &&
         (err.name === "TimeoutError" || err.name === "AbortError");
@@ -104,7 +114,10 @@ function CaseDetailContent({
           : "Re-analysis could not be completed."
       );
     } finally {
-      setIsReanalyzing(false);
+      if (requestSeq === reanalyzeRequestSeqRef.current) {
+        reanalyzeInFlightRef.current = false;
+        setIsReanalyzing(false);
+      }
     }
   }
 
