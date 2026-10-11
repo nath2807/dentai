@@ -4,6 +4,7 @@ import { useEffect, useState, use, Suspense } from "react";
 import Link from "next/link";
 import { getCase, type StoredCase } from "@/lib/case-storage";
 import { Icon } from "@/components/clinical-ui";
+import { formatToothWithSystem } from "@/lib/tooth-numbering";
 
 export default function ClinicalReportPage(props: {
   params: Promise<{ id: string }>;
@@ -240,8 +241,11 @@ function ClinicalReportContent({
                 <p className="mt-1"><span className="font-bold">Biological Sex:</span> {caseData.caseInformation.sex}</p>
                 <p className="mt-1">
                   <span className="font-bold">Tooth / Region:</span>{" "}
-                  {caseData.toothAssessment?.toothNumber || caseData.clinicalExamination.toothOrRegion || "Unspecified"}
-                  {caseData.toothAssessment?.arch && ` (${caseData.toothAssessment.arch} arch)`}
+                  {formatToothWithSystem(
+                    caseData.toothAssessment?.toothNumber ||
+                      caseData.clinicalExamination.toothOrRegion ||
+                      ""
+                  )}
                 </p>
               </div>
               <div>

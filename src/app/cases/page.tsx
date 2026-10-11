@@ -2,24 +2,40 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { AppShell, Icon, StatCard } from "@/components/clinical-ui";
+import {
+  AppShell,
+  Icon,
+  StatCard,
+  LikelihoodBadge,
+  ToothPill,
+} from "@/components/clinical-ui";
 import {
   getCases,
   deleteCase,
   seedBenchmarkCases,
+  getStorageStats,
   type StoredCase,
-  type CaseStatus,
-  type ReviewStatus,
+  type StorageStats,
 } from "@/lib/case-storage";
+import { formatToothWithSystem } from "@/lib/tooth-numbering";
 
 export default function CasesPage() {
   const [cases, setCases] = useState<StoredCase[]>([]);
+  const [stats, setStats] = useState<StorageStats>({
+    caseCount: 0,
+    analyzedCount: 0,
+    reviewedCount: 0,
+    estimatedBytes: 0,
+    formattedSize: "0 KB",
+    isNearQuota: false,
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [caseToDelete, setCaseToDelete] = useState<StoredCase | null>(null);
 
   function refreshCases() {
     setCases(getCases());
+    setStats(getStorageStats());
   }
 
   useEffect(() => {
@@ -30,7 +46,10 @@ export default function CasesPage() {
   }, []);
 
   const totalCases = cases.length;
-  const analyzedCasesCount = cases.filter((c) => c.status === "analyzed").length;
+  const analyzedCasesCount = cases.filter((c) => c.status === "analyzed" || c.analysis !== null).length;
+  const reviewedCasesCount = cases.filter(
+    (c) => c.reviewStatus === "reviewed" || c.status === "reviewed"
+  ).length;
   const staleCasesCount = cases.filter(
     (c) => c.analysisStatus === "stale" && c.analysis !== null
   ).length;
@@ -44,7 +63,9 @@ export default function CasesPage() {
         } else if (statusFilter === "reviewed") {
           if (item.reviewStatus !== "reviewed" && item.status !== "reviewed") return false;
         } else if (statusFilter === "needs_review") {
-          if (item.reviewStatus !== "needs_review") return false;
+          if (item.reviewStatus !== "needs_review" && item.review?.status !== "needs_review") return false;
+        } else if (statusFilter === "analyzed") {
+          if (!item.analysis) return false;
         } else if (item.status !== statusFilter) {
           return false;
         }
@@ -91,211 +112,312 @@ export default function CasesPage() {
     <AppShell activeItem="Clinical Cases">
       <div className="mx-auto max-w-6xl space-y-7">
         {/* Header */}
-        <div className="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-slate-200/90 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-teal-700">
-              Dentarith / Case Management
-            </p>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2 w-2 rounded-full bg-teal-600" />
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-teal-800">
+                Dentarith Workspace / Clinical Registry
+              </p>
+            </div>
+            <h1 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
               Clinical Cases Dashboard
             </h1>
             <p className="mt-1 text-xs text-slate-500">
-              Manage saved cases, track Dentarith diagnostic analyses, and export clinical decision reports.
+              Manage saved dental assessments, review diagnostic reasoning, and generate printable reports.
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
+              type="button"
               onClick={handleLoadBenchmarks}
-              className="inline-flex h-10 items-center justify-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-3.5 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3.5 text-xs font-bold text-teal-900 transition hover:bg-teal-100"
             >
-              <Icon name="spark" size={15} />
-              Load Benchmarks
+              <Icon name="spark" size={14} />
+              <span>Seed Reference Benchmarks</span>
             </button>
             <Link
               href="/cases/new"
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-800"
+              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs transition hover:bg-teal-800"
             >
-              <Icon name="plus" size={16} />
-              New Clinical Case
+              <Icon name="plus" size={14} />
+              <span>New Clinical Case</span>
             </Link>
           </div>
         </div>
 
-        {/* Privacy Notice */}
-        <div className="flex items-start gap-3 rounded-xl border border-teal-200/80 bg-teal-50/60 p-4 text-xs text-teal-950">
-          <Icon name="folder" size={17} />
-          <div>
-            <span className="font-bold">Dentarith Local Storage Notice:</span> Cases are stored locally in your web browser for this clinical decision-support demonstration. Do not enter direct patient identifying data (PHI/PII). This demonstration is not a HIPAA/GDPR-compliant electronic health record system.
+        {/* Local Storage & Non-Autonomous Mode Notice */}
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-teal-200/90 bg-teal-50/70 p-4 text-xs text-teal-950">
+          <div className="flex items-start gap-2.5">
+            <Icon name="shield" size={17} className="text-teal-700 shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold">Dentarith Local Storage &amp; Clinician Oversight:</span>
+              <p className="mt-0.5 text-teal-900/90 leading-relaxed">
+                Cases are stored in your local browser ({stats.formattedSize} currently utilized). Never enter unprotected PHI. Dentarith operates strictly as decision support; the licensed clinician retains ultimate diagnosis and treatment responsibility.
+              </p>
+            </div>
           </div>
+          <Link
+            href="/settings"
+            className="text-xs font-bold text-teal-800 hover:text-teal-950 underline shrink-0 hidden sm:inline"
+          >
+            Manage Storage
+          </Link>
         </div>
 
         {/* Stat Cards */}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-4">
           <StatCard
             label="Total Cases"
             value={String(totalCases)}
-            detail="Stored in this browser"
+            detail="Stored locally"
             icon="folder"
           />
           <StatCard
-            label="Analyzed with Dentarith"
+            label="Analyzed"
             value={String(analyzedCasesCount)}
-            detail="With clinical reasoning"
+            detail="AI reasoning generated"
             icon="spark"
           />
           <StatCard
-            label="Stale / Needing Review"
+            label="Clinician Verified"
+            value={String(reviewedCasesCount)}
+            detail="Dentist signed off"
+            icon="check"
+          />
+          <StatCard
+            label="Pending Review / Stale"
             value={String(staleCasesCount)}
-            detail="Clinical data changed"
-            icon="report"
+            detail="Needs clinician check"
+            icon="alert"
           />
         </div>
 
-        {/* Filter and Search Bar */}
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:flex-row sm:items-center sm:justify-between">
+        {/* Filter & Search Bar */}
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1">
+            <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <Icon name="search" size={16} />
+            </span>
             <input
               type="text"
-              placeholder="Search by Case ID, tooth, complaint, or diagnosis..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-slate-300 bg-slate-50/50 px-3.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:border-teal-600 focus:bg-white focus:outline-none focus:ring-1 focus:ring-teal-600"
+              placeholder="Search by Case ID, tooth number, symptoms, or diagnosis..."
+              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:ring-2 focus:ring-teal-100"
             />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-2.5 text-xs text-slate-400 hover:text-slate-600"
-              >
-                ✕
-              </button>
-            )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <label htmlFor="filter-status" className="text-xs font-semibold text-slate-600">
-              Status:
-            </label>
-            <select
-              id="filter-status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600"
-            >
-              <option value="all">All Cases</option>
-              <option value="reviewed">Reviewed</option>
-              <option value="needs_review">Needs Review</option>
-              <option value="analyzed">Analyzed</option>
-              <option value="draft">Draft</option>
-              <option value="stale">Stale Analysis</option>
-            </select>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {[
+              { id: "all", label: "All Cases" },
+              { id: "analyzed", label: "Analyzed" },
+              { id: "needs_review", label: "Needs Review" },
+              { id: "reviewed", label: "Reviewed" },
+              { id: "stale", label: "Stale" },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setStatusFilter(tab.id)}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  statusFilter === tab.id
+                    ? "bg-teal-700 text-white shadow-xs"
+                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Case List or Empty State */}
+        {/* Cases Table / Empty State */}
         {filteredCases.length === 0 ? (
-          <EmptyCasesState
-            hasTotalCases={totalCases > 0}
-            onClearFilters={() => {
-              setSearchQuery("");
-              setStatusFilter("all");
-            }}
-            onLoadBenchmarks={handleLoadBenchmarks}
-          />
+          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-50 text-teal-800 border border-teal-100">
+              <Icon name="folder" size={26} />
+            </div>
+            <h2 className="mt-4 text-base font-bold text-slate-950">
+              {searchQuery || statusFilter !== "all"
+                ? "No matching clinical cases found"
+                : "No clinical cases stored yet"}
+            </h2>
+            <p className="mt-1.5 max-w-sm text-xs leading-5 text-slate-500">
+              {searchQuery || statusFilter !== "all"
+                ? "Try clearing your search query or switching your status filter."
+                : "Create your first dental assessment or load our synthetic reference benchmark cases to explore the clinical reasoning copilot."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                href="/cases/new"
+                className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs hover:bg-teal-800 transition"
+              >
+                <Icon name="plus" size={15} />
+                Create New Case
+              </Link>
+              <button
+                type="button"
+                onClick={handleLoadBenchmarks}
+                className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+              >
+                <Icon name="spark" size={15} />
+                Seed Reference Benchmarks
+              </button>
+            </div>
+          </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
-                    <th className="px-5 py-3.5">Case ID</th>
-                    <th className="px-4 py-3.5">Date</th>
-                    <th className="px-4 py-3.5">Patient</th>
+                    <th className="px-5 py-3.5">Case Identification</th>
                     <th className="px-4 py-3.5">Tooth / Region</th>
-                    <th className="px-4 py-3.5">Leading Consideration</th>
-                    <th className="px-4 py-3.5">Status</th>
-                    <th className="px-5 py-3.5 text-right">Actions</th>
+                    <th className="px-4 py-3.5">Chief Complaint</th>
+                    <th className="px-4 py-3.5">Leading Diagnostic Consideration</th>
+                    <th className="px-4 py-3.5">Review Status</th>
+                    <th className="px-5 py-3.5 text-right">Clinical Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-slate-700">
-                  {filteredCases.map((item) => {
-                    const tooth =
-                      item.caseData.toothAssessment?.toothNumber ||
-                      item.caseData.clinicalExamination.toothOrRegion ||
-                      "Unspecified";
+                  {filteredCases.map((c) => {
+                    const toothNum =
+                      c.caseData.toothAssessment?.toothNumber ||
+                      c.caseData.clinicalExamination.toothOrRegion ||
+                      "";
                     const leadingDiag =
-                      item.analysis?.possibleDiagnoses?.find((d) => d.rank === 1) ||
-                      item.analysis?.possibleDiagnoses?.[0];
-                    const dateFormatted = new Date(
-                      item.updatedAt || item.createdAt
-                    ).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    });
+                      c.analysis?.possibleDiagnoses?.[0]?.diagnosis || "Pending Analysis";
+                    const likelihood =
+                      c.analysis?.possibleDiagnoses?.[0]?.likelihood;
+                    const isStale = c.analysisStatus === "stale" && Boolean(c.analysis);
+                    const isReviewed =
+                      c.reviewStatus === "reviewed" || c.status === "reviewed";
 
                     return (
-                      <tr key={item.id} className="transition hover:bg-slate-50/70">
-                        <td className="px-5 py-4 font-bold text-slate-950">
+                      <tr
+                        key={c.id}
+                        className="transition hover:bg-slate-50/80"
+                      >
+                        {/* Case ID & Date */}
+                        <td className="px-5 py-4">
                           <Link
-                            href={`/cases/${encodeURIComponent(item.id)}`}
-                            className="text-teal-700 hover:underline"
+                            href={`/cases/${encodeURIComponent(c.id)}`}
+                            className="font-bold text-slate-950 hover:text-teal-800 transition"
                           >
-                            {item.id}
+                            {c.id}
                           </Link>
+                          <p className="mt-0.5 text-[11px] text-slate-400">
+                            {new Date(c.updatedAt || c.createdAt).toLocaleDateString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-4 text-slate-500">
-                          {dateFormatted}
-                        </td>
-                        <td className="px-4 py-4 text-slate-700">
-                          {item.caseData.caseInformation.age}y / {item.caseData.caseInformation.sex}
-                        </td>
-                        <td className="px-4 py-4 font-medium text-slate-800">
-                          {tooth}
-                        </td>
-                        <td className="px-4 py-4">
-                          {leadingDiag ? (
+
+                        {/* Tooth & Arch */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {toothNum ? (
                             <div>
-                              <span className="font-semibold text-slate-900">
-                                {leadingDiag.diagnosis}
-                              </span>
-                              <span className="ml-1.5 inline-block rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 border border-amber-200">
-                                {leadingDiag.diagnosticCategory}
-                              </span>
+                              <ToothPill toothNumber={toothNum} />
+                              <p
+                                className="mt-0.5 text-[10px] text-slate-400 font-medium truncate max-w-[150px]"
+                                title={formatToothWithSystem(toothNum)}
+                              >
+                                {formatToothWithSystem(toothNum)}
+                              </p>
                             </div>
                           ) : (
-                            <span className="italic text-slate-400">Not analyzed yet</span>
+                            <span className="text-slate-400">Not specified</span>
                           )}
                         </td>
-                        <td className="px-4 py-4">
-                          <StatusBadge
-                            status={item.status}
-                            analysisStatus={item.analysisStatus}
-                            reviewStatus={item.reviewStatus}
-                            hasAnalysis={Boolean(item.analysis)}
-                          />
+
+                        {/* Chief Complaint */}
+                        <td className="px-4 py-4 max-w-xs">
+                          <p className="truncate font-medium text-slate-900" title={c.caseData.chiefComplaint}>
+                            {c.caseData.chiefComplaint}
+                          </p>
+                          <p className="text-[11px] text-slate-400">
+                            Age: {c.caseData.caseInformation.age}y • {c.caseData.caseInformation.sex}
+                          </p>
                         </td>
-                        <td className="px-5 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+
+                        {/* Leading Diagnosis */}
+                        <td className="px-4 py-4 max-w-xs">
+                          {c.analysis ? (
+                            <div>
+                              <p className="font-semibold text-slate-950 truncate" title={leadingDiag}>
+                                {leadingDiag}
+                              </p>
+                              {likelihood && (
+                                <div className="mt-1">
+                                  <LikelihoodBadge likelihood={likelihood} />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic">Not yet analyzed</span>
+                          )}
+                        </td>
+
+                        {/* Review Status */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          {isStale ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              Stale Analysis
+                            </span>
+                          ) : isReviewed ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                              Clinician Verified
+                            </span>
+                          ) : c.analysis ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800 border border-teal-300">
+                              <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
+                              Needs Review
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-600 border border-slate-200">
+                              Draft Intake
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-5 py-4 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5">
                             <Link
-                              href={`/cases/${encodeURIComponent(item.id)}`}
-                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-800"
+                              href={`/cases/${encodeURIComponent(c.id)}`}
+                              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                              title="Open case workspace"
                             >
                               Open
                             </Link>
-                            {item.analysis && (
+                            {c.analysis && (
                               <Link
-                                href={`/cases/${encodeURIComponent(item.id)}/report`}
-                                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-teal-800 transition hover:bg-teal-50"
+                                href={`/cases/${encodeURIComponent(c.id)}/report`}
+                                className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                                title="Print clinical report"
                               >
-                                Report
+                                <Icon name="printer" size={14} />
                               </Link>
                             )}
+                            <Link
+                              href={`/cases/new?id=${encodeURIComponent(c.id)}`}
+                              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                              title="Edit clinical findings"
+                            >
+                              <Icon name="edit" size={14} />
+                            </Link>
                             <button
-                              onClick={() => setCaseToDelete(item)}
-                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-red-600 transition hover:bg-red-50 hover:border-red-300"
+                              type="button"
+                              onClick={() => setCaseToDelete(c)}
+                              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-red-600 hover:border-red-300 hover:bg-red-50 transition"
                               title="Delete case"
                             >
-                              Delete
+                              <Icon name="trash" size={14} />
                             </button>
                           </div>
                         </td>
@@ -310,33 +432,36 @@ export default function CasesPage() {
 
         {/* Delete Confirmation Modal */}
         {caseToDelete && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl">
-              <div className="flex items-center gap-3 text-red-600">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 font-bold">
-                  !
-                </span>
-                <h3 className="text-base font-bold text-slate-950">
-                  Delete Clinical Case?
-                </h3>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity"
+              onClick={() => setCaseToDelete(null)}
+              aria-hidden="true"
+            />
+            <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 mb-4">
+                <Icon name="trash" size={22} />
               </div>
-              <p className="mt-3 text-xs leading-relaxed text-slate-600">
-                Are you sure you want to delete <span className="font-bold text-slate-900">{caseToDelete.id}</span>? This will permanently remove the locally stored case data and clinical reasoning assessment from this browser session.
+              <h3 className="text-base font-bold text-slate-950">
+                Delete Clinical Case {caseToDelete.id}?
+              </h3>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                This will permanently remove this case and its associated diagnostic reasoning and clinician review history from your local browser storage. This action cannot be undone.
               </p>
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="mt-6 flex justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setCaseToDelete(null)}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-red-700"
+                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-xs"
                 >
-                  Delete Case
+                  Confirm Delete
                 </button>
               </div>
             </div>
@@ -344,102 +469,5 @@ export default function CasesPage() {
         )}
       </div>
     </AppShell>
-  );
-}
-
-function StatusBadge({
-  status,
-  analysisStatus,
-  reviewStatus,
-  hasAnalysis,
-}: {
-  status: CaseStatus;
-  analysisStatus?: "current" | "stale";
-  reviewStatus?: ReviewStatus;
-  hasAnalysis: boolean;
-}) {
-  if (analysisStatus === "stale") {
-    return (
-      <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
-        Stale Analysis
-      </span>
-    );
-  }
-  if (reviewStatus === "reviewed" || status === "reviewed") {
-    return (
-      <span className="inline-flex items-center rounded-full border border-emerald-400 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
-        Reviewed
-      </span>
-    );
-  }
-  if (reviewStatus === "needs_review") {
-    return (
-      <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
-        Needs Review
-      </span>
-    );
-  }
-  if (status === "analyzed" || hasAnalysis) {
-    return (
-      <span className="inline-flex items-center rounded-full border border-teal-300 bg-teal-50 px-2.5 py-0.5 text-[10px] font-bold text-teal-800">
-        Analyzed
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-50 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
-      Draft
-    </span>
-  );
-}
-
-function EmptyCasesState({
-  hasTotalCases,
-  onClearFilters,
-  onLoadBenchmarks,
-}: {
-  hasTotalCases: boolean;
-  onClearFilters: () => void;
-  onLoadBenchmarks: () => void;
-}) {
-  return (
-    <div className="flex min-h-[330px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
-      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-50 text-teal-700">
-        <Icon name="folder" size={26} />
-      </div>
-      <h3 className="mt-4 text-base font-bold text-slate-950">
-        {hasTotalCases ? "No matching cases found" : "No clinical cases yet"}
-      </h3>
-      <p className="mt-2 max-w-sm text-xs leading-5 text-slate-500">
-        {hasTotalCases
-          ? "No saved cases match your current search query or status filter."
-          : "Create your first dental consultation or load vetted reference benchmarks to explore decision-support reasoning."}
-      </p>
-      {hasTotalCases ? (
-        <button
-          onClick={onClearFilters}
-          className="mt-5 inline-flex h-9 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-800 transition hover:border-teal-500"
-        >
-          Clear Filters
-        </button>
-      ) : (
-        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/cases/new"
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800"
-          >
-            <Icon name="plus" size={16} />
-            New Clinical Case
-          </Link>
-          <button
-            onClick={onLoadBenchmarks}
-            className="inline-flex h-10 items-center gap-2 rounded-lg border border-teal-300 bg-teal-50 px-4 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
-          >
-            <Icon name="spark" size={15} />
-            Load Benchmark Cases
-          </button>
-        </div>
-      )}
-    </div>
   );
 }

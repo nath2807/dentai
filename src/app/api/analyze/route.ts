@@ -80,7 +80,9 @@ Core Clinical Reasoning Rules:
    - Explicitly list findings or tests that could materially change the current diagnostic ranking (e.g. "Radiographic evidence of a periapical lesion", "Different response pattern on comparative pulp testing", "Evidence of a coronal fracture line on transillumination").
 10. Differentials:
    - For each differential item, explain whyConsidered, supportingEvidence, evidenceAgainst, and whatWouldChangeRanking.
-11. Tone & Safety:
+11. Tooth-Numbering Conventions:
+   - Interpret tooth references accurately according to either the Universal Numbering System (#1 to #32) or the FDI World Dental Federation two-digit system (11-48). For instance, tooth #19 (Universal) corresponds to tooth 36 (FDI) representing the mandibular left first molar; tooth #30 corresponds to 46 (mandibular right first molar); tooth #8 corresponds to 11 (maxillary right central incisor). Confirm concordance between stated tooth number, arch, and quadrant.
+12. Tone & Safety:
    - Do not claim diagnostic certainty. Prefer clinical phrasing such as "Findings are suggestive of", "Differential consideration", "Cannot determine without...".
 
 Return only the requested JSON object matching the schema. Use empty arrays when there are no items.`;

@@ -3,7 +3,8 @@
 import { useEffect, useState, use, Suspense } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AppShell, Icon } from "@/components/clinical-ui";
+import { AppShell, Icon, ToothPill } from "@/components/clinical-ui";
+import { formatToothWithSystem } from "@/lib/tooth-numbering";
 import {
   getCase,
   deleteCase,
@@ -265,14 +266,21 @@ function CaseDetailContent({
 
         {/* 1. Case Information & Clinical Presentation */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
             <div>
               <h2 className="text-sm font-bold uppercase tracking-wider text-teal-800">
                 Patient &amp; Clinical Presentation
               </h2>
-              <p className="text-xs text-slate-500">
-                Age: <span className="font-semibold text-slate-800">{caseData.caseInformation.age}</span> • Sex: <span className="font-semibold text-slate-800">{caseData.caseInformation.sex}</span> • Tooth/Region: <span className="font-semibold text-slate-800">{caseData.toothAssessment?.toothNumber || caseData.clinicalExamination.toothOrRegion}</span>
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span>Age: <strong className="text-slate-800">{caseData.caseInformation.age}y</strong></span>
+                <span>•</span>
+                <span>Sex: <strong className="text-slate-800">{caseData.caseInformation.sex}</strong></span>
+                <span>•</span>
+                <ToothPill toothNumber={caseData.toothAssessment?.toothNumber || caseData.clinicalExamination.toothOrRegion} />
+                <span className="text-slate-500 font-medium">
+                  ({formatToothWithSystem(caseData.toothAssessment?.toothNumber || caseData.clinicalExamination.toothOrRegion)})
+                </span>
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 border border-slate-200">

@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   deleteCase,
+  exportCases,
   getCase,
   getCases,
+  importCasesSafely,
   markAnalysisStale,
   reviewCase,
   saveCase,
@@ -11,6 +13,7 @@ import {
 import { normalizeClinicalCase } from "./clinical-case";
 import type { ClinicalCase } from "./clinical-case";
 import type { ClinicalAnalysis } from "./clinical-analysis";
+import { findTooth, formatToothWithSystem } from "./tooth-numbering";
 
 class MockLocalStorage {
   private store = new Map<string, string>();
@@ -275,4 +278,62 @@ describe("End-to-End Case Management Workflow (Phase 3)", () => {
     expect(getCase("CASE-999")).toBeNull();
     expect(getCases()).toHaveLength(0);
   });
+
+  it("handles tooth numbering concordance and de-identified export/import backup cycle", () => {
+    // 1. Resolve tooth 19 and confirm Universal / FDI concordance
+    const toothInfo = findTooth("19");
+    expect(toothInfo).not.toBeNull();
+    expect(toothInfo?.universal).toBe("19");
+    expect(toothInfo?.fdi).toBe("36");
+    expect(toothInfo?.name).toBe("Mandibular Left 1st Molar");
+
+    const formatted = formatToothWithSystem("19");
+    expect(formatted).toBe("#19 (FDI 36) — Mandibular Left 1st Molar");
+
+    // 2. Create case using Universal #19
+    const caseData = normalizeClinicalCase(
+      {
+        caseId: "CASE-TOOTH-19",
+        age: "28",
+        sex: "Male",
+        complaint: "Cold sensitivity on lower left molar",
+        duration: "5 days",
+        symptoms: "Lingering cold response",
+        toothNumber: "19",
+        arch: "mandibular",
+        quadrant: "Lower Left (Q3)",
+      },
+      null
+    ) as unknown as ClinicalCase;
+
+    saveCase({
+      id: "CASE-TOOTH-19",
+      caseData,
+      formValues: { toothNumber: "19", arch: "mandibular", quadrant: "Lower Left (Q3)" },
+      analysis: null,
+      status: "draft",
+      analysisStatus: "stale",
+    });
+
+    // 3. Export all cases to JSON backup bundle
+    const exportedJson = exportCases();
+    expect(exportedJson).toContain("CASE-TOOTH-19");
+    expect(exportedJson).toContain("dentarith-clinical-cases");
+
+    // 4. Simulate clean browser workspace
+    deleteCase("CASE-TOOTH-19");
+    expect(getCases()).toHaveLength(0);
+
+    // 5. Restore from backup
+    const importResult = importCasesSafely(exportedJson, { overwriteExisting: true });
+    expect(importResult.success).toBe(true);
+    expect(importResult.importedCount).toBe(1);
+
+    // 6. Verify restored case retains tooth data
+    const restored = getCase("CASE-TOOTH-19");
+    expect(restored).not.toBeNull();
+    expect(restored?.caseData.toothAssessment?.toothNumber).toBe("19");
+    expect(restored?.caseData.toothAssessment?.arch).toBe("mandibular");
+  });
 });
+

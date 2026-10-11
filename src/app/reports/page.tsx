@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AppShell, Icon, StatCard } from "@/components/clinical-ui";
+import { AppShell, Icon, StatCard, ToothPill } from "@/components/clinical-ui";
 import { getCases, type StoredCase } from "@/lib/case-storage";
 
 export default function ReportsPage() {
@@ -103,8 +103,7 @@ export default function ReportsPage() {
                   {analyzedCases.map((item) => {
                     const tooth =
                       item.caseData.toothAssessment?.toothNumber ||
-                      item.caseData.clinicalExamination.toothOrRegion ||
-                      "Unspecified";
+                      item.caseData.clinicalExamination.toothOrRegion;
                     const leadingDiag =
                       item.analysis?.possibleDiagnoses?.find((d) => d.rank === 1) ||
                       item.analysis?.possibleDiagnoses?.[0];
@@ -124,7 +123,16 @@ export default function ReportsPage() {
                           {new Date(item.updatedAt || item.createdAt).toLocaleDateString()}
                         </td>
                         <td className="px-4 py-4 text-slate-700">
-                          {item.caseData.caseInformation.age}y / {item.caseData.caseInformation.sex} • Tooth {tooth}
+                          <p className="font-medium text-slate-900">
+                            {item.caseData.caseInformation.age}y / {item.caseData.caseInformation.sex}
+                          </p>
+                          <div className="mt-1 flex items-center gap-1.5">
+                            {tooth ? (
+                              <ToothPill toothNumber={tooth} />
+                            ) : (
+                              <span className="text-slate-400 text-[11px]">Unspecified tooth</span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-4 py-4">
                           {leadingDiag ? (

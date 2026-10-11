@@ -16,6 +16,8 @@ import {
 import type { ZodIssue } from "zod";
 import type { ClinicalAnalysis } from "@/lib/clinical-analysis";
 import { getCase, saveCase, type StoredCase } from "@/lib/case-storage";
+import { ToothChart } from "@/components/tooth-chart";
+import type { ToothInfo } from "@/lib/tooth-numbering";
 
 type Draft = { values: FormValues; radiograph: Radiograph | null };
 const draftKey = "dentai-clinical-case-draft";
@@ -81,6 +83,31 @@ export default function CaseForm() {
   const [painPresent, setPainPresent] = useState<string>("yes");
   const [showPeriodontal, setShowPeriodontal] = useState<boolean>(false);
   const [showDentalHistory, setShowDentalHistory] = useState<boolean>(false);
+  const [selectedToothChartNumber, setSelectedToothChartNumber] = useState<string>("");
+
+  function handleToothChartSelect(tooth: ToothInfo) {
+    if (!formRef.current) return;
+    const tnField = formRef.current.elements.namedItem("toothNumber");
+    if (tnField instanceof HTMLInputElement) {
+      tnField.value = tooth.universal;
+    }
+    const archField = formRef.current.elements.namedItem("arch");
+    if (archField instanceof HTMLSelectElement) {
+      archField.value = tooth.arch;
+    }
+    const quadField = formRef.current.elements.namedItem("quadrant");
+    if (quadField instanceof HTMLSelectElement) {
+      if (tooth.quadrant === "upper_right") quadField.value = "Upper Right (Q1)";
+      else if (tooth.quadrant === "upper_left") quadField.value = "Upper Left (Q2)";
+      else if (tooth.quadrant === "lower_left") quadField.value = "Lower Left (Q3)";
+      else if (tooth.quadrant === "lower_right") quadField.value = "Lower Right (Q4)";
+    }
+    const regionField = formRef.current.elements.namedItem("region");
+    if (regionField instanceof HTMLInputElement) {
+      regionField.value = tooth.name;
+    }
+    setSelectedToothChartNumber(tooth.universal);
+  }
 
   useEffect(() => {
     let timer: number | undefined;
@@ -117,6 +144,9 @@ export default function CaseForm() {
           ) {
             setShowDentalHistory(true);
           }
+          if (formVals.toothNumber) {
+            setSelectedToothChartNumber(formVals.toothNumber);
+          }
         }, 0);
         return () => window.clearTimeout(timer);
       }
@@ -140,6 +170,9 @@ export default function CaseForm() {
       timer = window.setTimeout(() => {
         if (draft.values.painPresent) {
           setPainPresent(draft.values.painPresent);
+        }
+        if (draft.values.toothNumber) {
+          setSelectedToothChartNumber(draft.values.toothNumber);
         }
         if (draft.radiograph) {
           setRadiograph(draft.radiograph);
@@ -343,8 +376,27 @@ export default function CaseForm() {
         </div>
       </div>
 
+      {/* Sticky Section Navigator */}
+      <div className="sticky top-20 z-10 -mx-1 mb-6 overflow-x-auto rounded-xl border border-slate-200/90 bg-white/95 p-2 backdrop-blur-md shadow-xs sm:mx-0">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold">
+          <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Jump:</span>
+          <a href="#sec-case" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">1. Info</a>
+          <a href="#sec-complaint" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">2. Complaint</a>
+          <a href="#sec-pain" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">3. Pain</a>
+          <a href="#sec-tooth" className="rounded-lg px-2.5 py-1 bg-teal-50 text-teal-800 font-bold border border-teal-200/60 hover:bg-teal-100 transition">4. Tooth Chart</a>
+          <a href="#sec-pulpal" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">5. Pulpal</a>
+          <a href="#sec-periapical" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">6. Periapical</a>
+          <a href="#sec-periodontal" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">7. Periodontal</a>
+          <a href="#sec-hard-tissue" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">8. Hard Tissue</a>
+          <a href="#sec-medical" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">9. Medical</a>
+          <a href="#sec-dental-history" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">10. Dental History</a>
+          <a href="#sec-investigations" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">11. Investigations</a>
+          <a href="#sec-radiograph" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">12. Radiograph</a>
+        </div>
+      </div>
+
       {/* 1. Case Information */}
-      <SectionContainer index={1} title="Case Information" description="Basic consultation identifiers">
+      <SectionContainer id="sec-case" index={1} title="Case Information" description="Basic consultation identifiers">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="field-caseId" className="mb-1.5 block text-xs font-semibold text-slate-700">Case ID *</label>
@@ -371,7 +423,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 2. Chief Complaint */}
-      <SectionContainer index={2} title="Chief Complaint" description="Patient's primary presenting concern">
+      <SectionContainer id="sec-complaint" index={2} title="Chief Complaint" description="Patient's primary presenting concern">
         <div>
           <label htmlFor="field-complaint" className="mb-1.5 block text-xs font-semibold text-slate-700">Presenting complaint in patient&apos;s own words *</label>
           <textarea id="field-complaint" name="complaint" rows={3} placeholder="Describe the main complaint (e.g. Pain in lower right tooth when biting)..." className={textareaClass(errors.complaint)} />
@@ -380,7 +432,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 3. Pain Assessment */}
-      <SectionContainer index={3} title="Pain Assessment" description="History and character of presenting discomfort">
+      <SectionContainer id="sec-pain" index={3} title="Pain Assessment" description="History and character of presenting discomfort">
         <div className="mb-4 flex items-center gap-4">
           <span className="text-xs font-semibold text-slate-700">Is pain present?</span>
           <label className="flex items-center gap-1.5 text-xs text-slate-700">
@@ -484,7 +536,16 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 4. Tooth / Region */}
-      <SectionContainer index={4} title="Tooth / Region" description="Anatomical site under evaluation">
+      <SectionContainer id="sec-tooth" index={4} title="Tooth / Region" description="Anatomical site under evaluation">
+        {/* Interactive Dental Arch Selector */}
+        <div className="mb-6">
+          <ToothChart
+            selectedToothNumber={selectedToothChartNumber}
+            onSelectTooth={handleToothChartSelect}
+            compact={true}
+          />
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="field-toothNumber" className="mb-1.5 block text-xs font-semibold text-slate-700">Tooth Number (FDI or Universal)</label>
@@ -533,7 +594,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 5. Pulpal Assessment */}
-      <SectionContainer index={5} title="Pulpal Assessment" description="Pulp vitality and sensibility testing findings">
+      <SectionContainer id="sec-pulpal" index={5} title="Pulpal Assessment" description="Pulp vitality and sensibility testing findings">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="field-coldTest" className="mb-1.5 block text-xs font-medium text-slate-700">Cold Test (Endo-Ice / Ethyl Chloride)</label>
@@ -574,7 +635,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 6. Periapical Assessment */}
-      <SectionContainer index={6} title="Periapical Assessment" description="Periapical tissues and mechanical testing">
+      <SectionContainer id="sec-periapical" index={6} title="Periapical Assessment" description="Periapical tissues and mechanical testing">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="field-percussion" className="mb-1.5 block text-xs font-medium text-slate-700">Percussion Test</label>
@@ -640,6 +701,7 @@ export default function CaseForm() {
 
       {/* 7. Periodontal Assessment (Collapsible) */}
       <SectionContainer
+        id="sec-periodontal"
         index={7}
         title="Periodontal Assessment"
         description="Gingival and periodontal attachment measurements"
@@ -691,7 +753,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 8. Hard-Tissue Findings */}
-      <SectionContainer index={8} title="Hard-Tissue Findings" description="Coronal tooth structure, restorations, and caries">
+      <SectionContainer id="sec-hard-tissue" index={8} title="Hard-Tissue Findings" description="Coronal tooth structure, restorations, and caries">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="field-caries" className="mb-1.5 block text-xs font-medium text-slate-700">Dental Caries</label>
@@ -765,7 +827,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 10. Medical History */}
-      <SectionContainer index={10} title="Medical History" description="Systemic conditions, medications, and allergies">
+      <SectionContainer id="sec-medical" index={10} title="Medical History" description="Systemic conditions, medications, and allergies">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
             <label htmlFor="field-systemicConditions" className="mb-1.5 block text-xs font-medium text-slate-700">Systemic Conditions</label>
@@ -784,6 +846,7 @@ export default function CaseForm() {
 
       {/* 11. Dental History (Collapsible) */}
       <SectionContainer
+        id="sec-dental-history"
         index={11}
         title="Dental History"
         description="Previous dental care, pain history, and extractions"
@@ -828,7 +891,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 12. Investigations */}
-      <SectionContainer index={12} title="Investigations" description="Diagnostic tests and radiographic records">
+      <SectionContainer id="sec-investigations" index={12} title="Investigations" description="Diagnostic tests and radiographic records">
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label htmlFor="field-investigationsPerformed" className="mb-1.5 block text-xs font-medium text-slate-700">Investigations Performed</label>
@@ -869,7 +932,7 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 15. Radiograph Attachment */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7">
+      <section id="sec-radiograph" className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7 scroll-mt-24">
         <div className="flex gap-3">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">15</span>
           <div>
@@ -964,6 +1027,7 @@ export default function CaseForm() {
 }
 
 function SectionContainer({
+  id,
   index,
   title,
   description,
@@ -972,6 +1036,7 @@ function SectionContainer({
   onToggle,
   children,
 }: {
+  id?: string;
   index: number;
   title: string;
   description: string;
@@ -981,7 +1046,7 @@ function SectionContainer({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7">
+    <section id={id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7 scroll-mt-24">
       <div className="flex items-center justify-between">
         <div className="flex gap-3">
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">

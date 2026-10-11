@@ -15,6 +15,7 @@ import {
 
 import { BENCHMARK_CASES } from "@/lib/benchmark-cases";
 import { type StoredCase, saveCase } from "@/lib/case-storage";
+import { formatToothWithSystem } from "@/lib/tooth-numbering";
 
 const analysisKey = "dentai-clinical-analysis";
 
@@ -114,8 +115,11 @@ export default function DemoResultsPage() {
                       : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
                   }`}
                 >
-                  <div className="font-semibold">
-                    Tooth #{tooth}: {primaryDiag}
+                  <div className="font-semibold text-xs">
+                    Tooth #{tooth} • {primaryDiag}
+                  </div>
+                  <div className="text-[10px] text-teal-800 font-medium">
+                    {formatToothWithSystem(tooth)}
                   </div>
                   <div className="text-[10px] text-slate-500 font-normal">
                     {bCase.id} • {bCase.caseData.caseInformation.age}y {bCase.caseData.caseInformation.sex}
