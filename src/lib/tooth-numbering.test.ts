@@ -4,6 +4,7 @@ import {
   fdiToUniversal,
   findTooth,
   formatToothWithSystem,
+  getOdontogramQuadrants,
   getTeethByArch,
   sanitizeToothInput,
   universalToFdi,
@@ -86,4 +87,38 @@ describe("tooth-numbering library", () => {
     expect(sanitizeToothInput("fdi 36")).toBe("36");
     expect(sanitizeToothInput("")).toBe("");
   });
+
+  it("organizes teeth into 4 anatomically aligned clinical quadrants", () => {
+    const { upperRight, upperLeft, lowerRight, lowerLeft } = getOdontogramQuadrants();
+
+    expect(upperRight).toHaveLength(8);
+    expect(upperLeft).toHaveLength(8);
+    expect(lowerRight).toHaveLength(8);
+    expect(lowerLeft).toHaveLength(8);
+
+    // Upper Right (#1..#8, FDI 18..11)
+    expect(upperRight[0].universal).toBe("1");
+    expect(upperRight[0].fdi).toBe("18");
+    expect(upperRight[7].universal).toBe("8");
+    expect(upperRight[7].fdi).toBe("11");
+
+    // Upper Left (#9..#16, FDI 21..28)
+    expect(upperLeft[0].universal).toBe("9");
+    expect(upperLeft[0].fdi).toBe("21");
+    expect(upperLeft[7].universal).toBe("16");
+    expect(upperLeft[7].fdi).toBe("28");
+
+    // Lower Right (#32..#25, FDI 48..41) - anatomically opposing Upper Right
+    expect(lowerRight[0].universal).toBe("32");
+    expect(lowerRight[0].fdi).toBe("48");
+    expect(lowerRight[7].universal).toBe("25");
+    expect(lowerRight[7].fdi).toBe("41");
+
+    // Lower Left (#24..#17, FDI 31..38) - anatomically opposing Upper Left
+    expect(lowerLeft[0].universal).toBe("24");
+    expect(lowerLeft[0].fdi).toBe("31");
+    expect(lowerLeft[7].universal).toBe("17");
+    expect(lowerLeft[7].fdi).toBe("38");
+  });
 });
+

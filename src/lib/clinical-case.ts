@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  type PeriodontalChartData,
+  periodontalChartSchema,
+  calculatePeriodontalSummary,
+} from "./periodontal-types";
 
 export const radiographMimeTypes = ["image/png", "image/jpeg"] as const;
 export const maxRadiographBytes = 10 * 1024 * 1024;
@@ -154,6 +159,7 @@ export type ClinicalCase = {
   pulpalAssessment?: PulpalAssessment;
   periapicalAssessment?: PeriapicalAssessment;
   periodontalAssessment?: PeriodontalAssessment;
+  periodontalChart?: PeriodontalChartData;
   hardTissueAssessment?: HardTissueAssessment;
   softTissueAssessment?: SoftTissueAssessment;
   structuredMedicalHistory?: StructuredMedicalHistory;
@@ -336,6 +342,7 @@ export const clinicalCaseSchema = z.object({
   pulpalAssessment: pulpalAssessmentSchema,
   periapicalAssessment: periapicalAssessmentSchema,
   periodontalAssessment: periodontalAssessmentSchema,
+  periodontalChart: periodontalChartSchema.optional(),
   hardTissueAssessment: hardTissueAssessmentSchema,
   softTissueAssessment: softTissueAssessmentSchema,
   structuredMedicalHistory: structuredMedicalHistorySchema,
@@ -357,7 +364,8 @@ export type FormValues = Record<string, string>;
 
 export function normalizeClinicalCase(
   values: FormValues,
-  radiograph: Radiograph | null
+  radiograph: Radiograph | null,
+  periodontalChart?: PeriodontalChartData | null
 ): ClinicalCase {
   const toothNumber = values.toothNumber?.trim() ?? "";
   const region = values.region?.trim() ?? "";
@@ -372,6 +380,47 @@ export function normalizeClinicalCase(
   const painSymptoms = values.symptoms?.trim() || values.character?.trim() || "";
   const provokingFactors = values.provokingFactors?.trim() || values.aggravating?.trim() || "";
   const relievingFactors = values.relievingFactors?.trim() || values.relieving?.trim() || "";
+
+  // Derive periodontal summary findings if structured chart is provided
+  let derivedProbingDepth = values.probingDepth?.trim() ?? "";
+  let derivedBop = values.bleedingOnProbing?.trim() ?? "";
+  const derivedRecession = values.recession?.trim() ?? "";
+  let derivedAttachmentLoss = values.attachmentLoss?.trim() ?? "";
+  let derivedFurcation = values.furcation?.trim() ?? "";
+  let derivedMobility = values.mobility?.trim() || values.periodontalMobility?.trim() || "";
+
+  if (periodontalChart && periodontalChart.teeth) {
+    const summary = calculatePeriodontalSummary(periodontalChart);
+    if (!derivedProbingDepth && summary.totalRecordedSites > 0) {
+      if (summary.sitesWithPockets6mmOrMore > 0) {
+        derivedProbingDepth = `Deep pocketing (max ${summary.maxProbingDepthMm}mm, ${summary.sitesWithPockets6mmOrMore} sites ≥6mm)`;
+      } else if (summary.sitesWithPockets4to5mm > 0) {
+        derivedProbingDepth = `Localized pocketing (max ${summary.maxProbingDepthMm}mm, ${summary.sitesWithPockets4to5mm} sites 4-5mm)`;
+      } else if (summary.maxProbingDepthMm !== null) {
+        derivedProbingDepth = `Within normal limits (max ${summary.maxProbingDepthMm}mm)`;
+      }
+    }
+    if (!derivedBop && summary.totalRecordedSites > 0) {
+      if (summary.bleedingOnProbingPercentage >= 30) {
+        derivedBop = `Generalized positive (${summary.bleedingOnProbingPercentage}% BOP)`;
+      } else if (summary.bleedingOnProbingPercentage >= 10) {
+        derivedBop = `Localized positive (${summary.bleedingOnProbingPercentage}% BOP)`;
+      } else if (summary.totalBleedingSites > 0) {
+        derivedBop = `Minimal bleeding (${summary.bleedingOnProbingPercentage}% BOP)`;
+      } else {
+        derivedBop = "Absent (0% BOP)";
+      }
+    }
+    if (!derivedAttachmentLoss && summary.maxAttachmentLossMm !== null && summary.maxAttachmentLossMm > 0) {
+      derivedAttachmentLoss = `Max CAL ${summary.maxAttachmentLossMm}mm`;
+    }
+    if (!derivedFurcation && summary.teethWithFurcation.length > 0) {
+      derivedFurcation = `Furcation noted: ${summary.teethWithFurcation.map((t) => `#${t}`).join(", ")}`;
+    }
+    if (!derivedMobility && summary.teethWithMobility.length > 0) {
+      derivedMobility = `Mobility noted: ${summary.teethWithMobility.map((t) => `#${t}`).join(", ")}`;
+    }
+  }
 
   return {
     caseInformation: {
@@ -418,15 +467,15 @@ export function normalizeClinicalCase(
         values.softTissue?.trim() ||
         "",
       periodontalFindings:
-        values.probingDepth?.trim() ||
-        values.bleedingOnProbing?.trim() ||
+        derivedProbingDepth ||
+        derivedBop ||
         values.periodontal?.trim() ||
         "",
       pulpalFindings: values.pulpTestResponse?.trim() || values.pulpal?.trim() || "",
       percussion: values.percussion?.trim() ?? "",
       palpation: values.palpation?.trim() ?? "",
-      mobility: values.mobility?.trim() || values.periodontalMobility?.trim() || "",
-      probing: values.probingDepth?.trim() || values.probing?.trim() || "",
+      mobility: derivedMobility,
+      probing: derivedProbingDepth || values.probing?.trim() || "",
       vitalityTests:
         values.coldTest?.trim() ||
         values.heatTest?.trim() ||
@@ -466,18 +515,20 @@ export function normalizeClinicalCase(
       percussion: values.percussion?.trim() ?? "",
       palpation: values.palpation?.trim() ?? "",
       biteTest: values.biteTest?.trim() ?? "",
-      mobility: values.mobility?.trim() ?? "",
+      mobility: derivedMobility,
       sinusTract: values.sinusTract?.trim() ?? "",
       swelling: values.swelling?.trim() ?? "",
     },
     periodontalAssessment: {
-      probingDepth: values.probingDepth?.trim() ?? "",
-      bleedingOnProbing: values.bleedingOnProbing?.trim() ?? "",
-      recession: values.recession?.trim() ?? "",
-      attachmentLoss: values.attachmentLoss?.trim() ?? "",
-      furcation: values.furcation?.trim() ?? "",
-      periodontalMobility: values.periodontalMobility?.trim() ?? "",
+      probingDepth: derivedProbingDepth,
+      bleedingOnProbing: derivedBop,
+      recession: derivedRecession,
+      attachmentLoss: derivedAttachmentLoss,
+      furcation: derivedFurcation,
+      periodontalMobility: derivedMobility,
     },
+    periodontalChart: periodontalChart || undefined,
+
     hardTissueAssessment: {
       caries: values.caries?.trim() ?? "",
       restoration: values.restoration?.trim() ?? "",

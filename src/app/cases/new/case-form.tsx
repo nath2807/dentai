@@ -17,9 +17,15 @@ import type { ZodIssue } from "zod";
 import type { ClinicalAnalysis } from "@/lib/clinical-analysis";
 import { getCase, saveCase, type StoredCase } from "@/lib/case-storage";
 import { ToothChart } from "@/components/tooth-chart";
+import { PeriodontalChart } from "@/components/periodontal-chart";
+import type { PeriodontalChartData } from "@/lib/periodontal-types";
 import type { ToothInfo } from "@/lib/tooth-numbering";
 
-type Draft = { values: FormValues; radiograph: Radiograph | null };
+type Draft = {
+  values: FormValues;
+  radiograph: Radiograph | null;
+  periodontalChart?: PeriodontalChartData | null;
+};
 const draftKey = "dentai-clinical-case-draft";
 
 function extractFormValuesFromStoredCase(storedCase: StoredCase): FormValues {
@@ -82,27 +88,38 @@ export default function CaseForm() {
   // Progressive disclosure toggles
   const [painPresent, setPainPresent] = useState<string>("yes");
   const [showPeriodontal, setShowPeriodontal] = useState<boolean>(false);
+  const [periodontalChart, setPeriodontalChart] = useState<PeriodontalChartData | null>(null);
   const [showDentalHistory, setShowDentalHistory] = useState<boolean>(false);
   const [selectedToothChartNumber, setSelectedToothChartNumber] = useState<string>("");
 
-  function handleToothChartSelect(tooth: ToothInfo) {
+  function handleToothChartSelect(tooth: ToothInfo | null) {
     if (!formRef.current) return;
     const tnField = formRef.current.elements.namedItem("toothNumber");
+    const archField = formRef.current.elements.namedItem("arch");
+    const quadField = formRef.current.elements.namedItem("quadrant");
+    const regionField = formRef.current.elements.namedItem("region");
+
+    if (!tooth) {
+      if (tnField instanceof HTMLInputElement) tnField.value = "";
+      if (archField instanceof HTMLSelectElement) archField.value = "";
+      if (quadField instanceof HTMLSelectElement) quadField.value = "";
+      if (regionField instanceof HTMLInputElement) regionField.value = "";
+      setSelectedToothChartNumber("");
+      return;
+    }
+
     if (tnField instanceof HTMLInputElement) {
       tnField.value = tooth.universal;
     }
-    const archField = formRef.current.elements.namedItem("arch");
     if (archField instanceof HTMLSelectElement) {
       archField.value = tooth.arch;
     }
-    const quadField = formRef.current.elements.namedItem("quadrant");
     if (quadField instanceof HTMLSelectElement) {
       if (tooth.quadrant === "upper_right") quadField.value = "Upper Right (Q1)";
       else if (tooth.quadrant === "upper_left") quadField.value = "Upper Left (Q2)";
       else if (tooth.quadrant === "lower_left") quadField.value = "Lower Left (Q3)";
       else if (tooth.quadrant === "lower_right") quadField.value = "Lower Right (Q4)";
     }
-    const regionField = formRef.current.elements.namedItem("region");
     if (regionField instanceof HTMLInputElement) {
       regionField.value = tooth.name;
     }
@@ -134,9 +151,13 @@ export default function CaseForm() {
           }
           if (
             formVals.probingDepth ||
-            stored.caseData.periodontalAssessment?.probingDepth
+            stored.caseData.periodontalAssessment?.probingDepth ||
+            stored.caseData.periodontalChart
           ) {
             setShowPeriodontal(true);
+          }
+          if (stored.caseData.periodontalChart) {
+            setPeriodontalChart(stored.caseData.periodontalChart);
           }
           if (
             formVals.previousTreatment ||
@@ -177,6 +198,10 @@ export default function CaseForm() {
         if (draft.radiograph) {
           setRadiograph(draft.radiograph);
           setFileName(draft.radiograph.fileName);
+        }
+        if (draft.periodontalChart) {
+          setPeriodontalChart(draft.periodontalChart);
+          setShowPeriodontal(true);
         }
         setDraftMessage("Draft restored from this browser session.");
       }, 0);
@@ -224,9 +249,12 @@ export default function CaseForm() {
 
   function saveDraft() {
     const values = readValues();
-    window.localStorage.setItem(draftKey, JSON.stringify({ values, radiograph }));
+    window.localStorage.setItem(
+      draftKey,
+      JSON.stringify({ values, radiograph, periodontalChart })
+    );
     if (values.caseId?.trim()) {
-      const clinicalCase = normalizeClinicalCase(values, radiograph);
+      const clinicalCase = normalizeClinicalCase(values, radiograph, periodontalChart);
       saveCase({
         id: values.caseId.trim(),
         caseData: clinicalCase as unknown as ClinicalCase,
@@ -242,7 +270,7 @@ export default function CaseForm() {
 
   function handleSaveWithoutAnalyze() {
     const values = readValues();
-    const clinicalCase = normalizeClinicalCase(values, radiograph);
+    const clinicalCase = normalizeClinicalCase(values, radiograph, periodontalChart);
     const result = clinicalCaseSchema.safeParse(clinicalCase);
 
     if (!result.success) {
@@ -290,7 +318,7 @@ export default function CaseForm() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = readValues();
-    const clinicalCase = normalizeClinicalCase(values, radiograph);
+    const clinicalCase = normalizeClinicalCase(values, radiograph, periodontalChart);
     const result = clinicalCaseSchema.safeParse(clinicalCase);
 
     if (!result.success) {
@@ -301,7 +329,6 @@ export default function CaseForm() {
 
     setErrors({});
     setIsAnalyzing(true);
-    window.localStorage.removeItem(draftKey);
     const requestCase = JSON.parse(
       JSON.stringify(result.data, (key, value) => (key === "dataUrl" ? undefined : value))
     ) as typeof result.data;
@@ -331,22 +358,34 @@ export default function CaseForm() {
         analysisStatus: "current",
         reviewStatus: "needs_review",
       });
+      // Remove draft only AFTER successful analysis and storage
+      window.localStorage.removeItem(draftKey);
       window.sessionStorage.setItem("dentai-clinical-analysis", JSON.stringify(payload));
       window.sessionStorage.setItem("dentai-clinical-case", JSON.stringify(requestCase));
       router.push(`/cases/${encodeURIComponent(caseId)}`);
     } catch (error) {
       setIsAnalyzing(false);
+      // Explicitly preserve entered data in localStorage on error
+      try {
+        window.localStorage.setItem(
+          draftKey,
+          JSON.stringify({ values, radiograph, periodontalChart })
+        );
+      } catch {
+        // storage quota fallback
+      }
+
       const isTimeout =
         error instanceof Error &&
         (error.name === "TimeoutError" || error.name === "AbortError");
       setErrors({
         submit: isTimeout
-          ? "Analysis timed out. Please check your connection and try again."
+          ? "Analysis timed out. Please check your connection and try again. (Your entered case data is preserved)"
           : error instanceof TypeError
-          ? "Network error. Check your connection and try again."
+          ? "Network error. Check your connection and try again. (Your entered case data is preserved)"
           : error instanceof Error
-          ? error.message
-          : "Analysis could not be completed. Please try again.",
+          ? `${error.message} (Your entered case data is preserved)`
+          : "Analysis could not be completed. Please try again. (Your entered case data is preserved)",
       });
     }
   }
@@ -704,50 +743,71 @@ export default function CaseForm() {
         id="sec-periodontal"
         index={7}
         title="Periodontal Assessment"
-        description="Gingival and periodontal attachment measurements"
+        description="Structured 6-site probing matrix, attachment loss, and gingival evaluation"
         collapsible
         isOpen={showPeriodontal}
         onToggle={() => setShowPeriodontal(!showPeriodontal)}
       >
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label htmlFor="field-probingDepth" className="mb-1.5 block text-xs font-medium text-slate-700">Probing Depths</label>
-            <select id="field-probingDepth" name="probingDepth" defaultValue="" className={selectClass()}>
-              <option value="">Not probed</option>
-              <option>Within normal limits (&le;3mm)</option>
-              <option>Localized pocketing (4-5mm)</option>
-              <option>Deep pocketing (&ge;6mm)</option>
-              <option>Isolated deep narrow pocket (&gt;7mm)</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="field-bleedingOnProbing" className="mb-1.5 block text-xs font-medium text-slate-700">Bleeding on Probing (BOP)</label>
-            <select id="field-bleedingOnProbing" name="bleedingOnProbing" defaultValue="" className={selectClass()}>
-              <option value="">Not tested</option>
-              <option>Absent</option>
-              <option>Localized positive</option>
-              <option>Generalized positive</option>
-            </select>
-          </div>
-          <div>
-            <label htmlFor="field-furcation" className="mb-1.5 block text-xs font-medium text-slate-700">Furcation Involvement</label>
-            <select id="field-furcation" name="furcation" defaultValue="" className={selectClass()}>
-              <option value="">Not applicable / None</option>
-              <option>Class I (early)</option>
-              <option>Class II (partial)</option>
-              <option>Class III (through-and-through)</option>
-            </select>
-          </div>
-        </div>
+        <div className="space-y-5">
+          {/* Structured 6-site Periodontal Chart */}
+          <PeriodontalChart
+            chartData={periodontalChart}
+            onChange={(updated) => setPeriodontalChart(updated)}
+            initialSelectedTooth={selectedToothChartNumber || "19"}
+          />
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <label htmlFor="field-recession" className="mb-1.5 block text-xs font-medium text-slate-700">Gingival Recession</label>
-            <input id="field-recession" name="recession" placeholder="e.g. 2mm buccal recession" className={inputClass()} />
-          </div>
-          <div>
-            <label htmlFor="field-attachmentLoss" className="mb-1.5 block text-xs font-medium text-slate-700">Clinical Attachment Loss</label>
-            <input id="field-attachmentLoss" name="attachmentLoss" placeholder="e.g. 3mm CAL" className={inputClass()} />
+          {/* Periodontal Summary Notes & Overrides */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2 mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Periodontal Examination Summary Notes &amp; Overrides
+              </span>
+              <span className="text-[10px] text-slate-500">
+                Auto-derived from 6-site chart if left blank
+              </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label htmlFor="field-probingDepth" className="mb-1.5 block text-xs font-medium text-slate-700">Probing Depths Summary</label>
+                <select id="field-probingDepth" name="probingDepth" defaultValue="" className={selectClass()}>
+                  <option value="">Auto-derive from 6-site chart</option>
+                  <option>Within normal limits (&le;3mm)</option>
+                  <option>Localized pocketing (4-5mm)</option>
+                  <option>Deep pocketing (&ge;6mm)</option>
+                  <option>Isolated deep narrow pocket (&gt;7mm)</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="field-bleedingOnProbing" className="mb-1.5 block text-xs font-medium text-slate-700">Bleeding on Probing (BOP)</label>
+                <select id="field-bleedingOnProbing" name="bleedingOnProbing" defaultValue="" className={selectClass()}>
+                  <option value="">Auto-derive from 6-site chart</option>
+                  <option>Absent</option>
+                  <option>Localized positive</option>
+                  <option>Generalized positive</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="field-furcation" className="mb-1.5 block text-xs font-medium text-slate-700">Furcation Involvement</label>
+                <select id="field-furcation" name="furcation" defaultValue="" className={selectClass()}>
+                  <option value="">Auto-derive from 6-site chart</option>
+                  <option>Class I (early)</option>
+                  <option>Class II (partial)</option>
+                  <option>Class III (through-and-through)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="field-recession" className="mb-1.5 block text-xs font-medium text-slate-700">Gingival Recession Notes</label>
+                <input id="field-recession" name="recession" placeholder="e.g. 2mm buccal recession on #19" className={inputClass()} />
+              </div>
+              <div>
+                <label htmlFor="field-attachmentLoss" className="mb-1.5 block text-xs font-medium text-slate-700">Clinical Attachment Loss (CAL) Notes</label>
+                <input id="field-attachmentLoss" name="attachmentLoss" placeholder="e.g. 5mm CAL on #19 DB" className={inputClass()} />
+              </div>
+            </div>
           </div>
         </div>
       </SectionContainer>

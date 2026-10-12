@@ -715,7 +715,7 @@ export default function LandingPage() {
           <div className="mt-12 mx-auto max-w-3xl">
             <ToothChart
               selectedToothNumber={selectedDemoTooth}
-              onSelectTooth={(t) => setSelectedDemoTooth(t.universal)}
+              onSelectTooth={(t) => setSelectedDemoTooth(t ? t.universal : "")}
             />
           </div>
         </div>

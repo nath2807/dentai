@@ -1,5 +1,6 @@
 import type { ClinicalCase } from "./clinical-case";
 import type { ClinicalAnalysis } from "./clinical-analysis";
+import { periodontalChartSchema } from "./periodontal-types";
 import { BENCHMARK_CASES } from "./benchmark-cases";
 export { BENCHMARK_CASES };
 
@@ -550,6 +551,25 @@ export function importCasesSafely(
     }
 
     const candidateCase = item as StoredCase;
+
+    // Validate periodontalChart if present to reject malformed/out-of-range measurements
+    if (candidateCase.caseData?.periodontalChart) {
+      const perioValidation = periodontalChartSchema.safeParse(
+        candidateCase.caseData.periodontalChart
+      );
+      if (!perioValidation.success) {
+        skippedCount++;
+        const issues = perioValidation.error.issues
+          .slice(0, 3)
+          .map((iss) => `${iss.path.join(".")}: ${iss.message}`)
+          .join("; ");
+        errors.push(
+          `Case ${candidateCase.id || i + 1}: Rejected due to invalid periodontal charting data (${issues}).`
+        );
+        continue;
+      }
+    }
+
     const key = candidateCase.id.trim().toLowerCase();
     const alreadyExists = existingMap.has(key);
 

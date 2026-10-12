@@ -84,6 +84,12 @@ Core Clinical Reasoning Rules:
    - Interpret tooth references accurately according to either the Universal Numbering System (#1 to #32) or the FDI World Dental Federation two-digit system (11-48). For instance, tooth #19 (Universal) corresponds to tooth 36 (FDI) representing the mandibular left first molar; tooth #30 corresponds to 46 (mandibular right first molar); tooth #8 corresponds to 11 (maxillary right central incisor). Confirm concordance between stated tooth number, arch, and quadrant.
 12. Tone & Safety:
    - Do not claim diagnostic certainty. Prefer clinical phrasing such as "Findings are suggestive of", "Differential consideration", "Cannot determine without...".
+13. Periodontal Charting & Assessment Guidelines:
+   - When structured periodontal charting (periodontalChart) is present in the case payload:
+     * Interpret objective site-level measurements (probing depth in mm, gingival margin relative to CEJ, calculated clinical attachment levels, site bleeding on probing, suppuration, tooth mobility, and furcation involvement).
+     * Follow AAP/EFP 2018 clinical staging conventions: probing depths 4-5 mm represent mild-to-moderate pocketing; probing depths >=6 mm represent severe pocketing. Bleeding on probing (BOP) >=10% of recorded sites indicates gingival inflammation.
+     * Evaluate exam completeness: if only selected teeth are probed or fewer than 24 teeth have complete 6-site records, explicitly note that periodontal charting is incomplete and avoid inferring full-mouth periodontal staging without a complete examination.
+     * Do not invent model-generated periodontal diagnoses. Keep measurements available as objective clinical evidence for the clinician's review.
 
 Return only the requested JSON object matching the schema. Use empty arrays when there are no items.`;
 

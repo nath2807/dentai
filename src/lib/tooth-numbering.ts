@@ -141,3 +141,25 @@ export function getTeethByArch(): {
     mandibular: PERMANENT_TEETH.filter((t) => t.arch === "mandibular"),
   };
 }
+
+/**
+ * Group teeth by the 4 standard clinical quadrants (facing patient):
+ * - Upper Right (Q1 / UR): teeth 1..8 (FDI 18..11) -> Viewer Top-Left
+ * - Upper Left (Q2 / UL): teeth 9..16 (FDI 21..28) -> Viewer Top-Right
+ * - Lower Right (Q4 / LR): teeth 32..25 (FDI 48..41) -> Viewer Bottom-Left (anatomically aligned opposing UR)
+ * - Lower Left (Q3 / LL): teeth 24..17 (FDI 31..38) -> Viewer Bottom-Right (anatomically aligned opposing UL)
+ */
+export function getOdontogramQuadrants(): {
+  upperRight: ToothInfo[];
+  upperLeft: ToothInfo[];
+  lowerRight: ToothInfo[];
+  lowerLeft: ToothInfo[];
+} {
+  const upperRight = PERMANENT_TEETH.filter((t) => t.quadrant === "upper_right");
+  const upperLeft = PERMANENT_TEETH.filter((t) => t.quadrant === "upper_left");
+  const lowerRight = [...PERMANENT_TEETH.filter((t) => t.quadrant === "lower_right")].reverse();
+  const lowerLeft = [...PERMANENT_TEETH.filter((t) => t.quadrant === "lower_left")].reverse();
+
+  return { upperRight, upperLeft, lowerRight, lowerLeft };
+}
+

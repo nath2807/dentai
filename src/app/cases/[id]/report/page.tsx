@@ -5,6 +5,11 @@ import Link from "next/link";
 import { getCase, type StoredCase } from "@/lib/case-storage";
 import { Icon } from "@/components/clinical-ui";
 import { formatToothWithSystem } from "@/lib/tooth-numbering";
+import {
+  calculatePeriodontalSummary,
+  BUCCAL_SITE_KEYS,
+  LINGUAL_SITE_KEYS,
+} from "@/lib/periodontal-types";
 
 export default function ClinicalReportPage(props: {
   params: Promise<{ id: string }>;
@@ -299,6 +304,142 @@ function ClinicalReportContent({
               </div>
             </div>
 
+            {/* Periodontal Charting & Measurements Table */}
+            <div className="mt-3 rounded border border-slate-200 bg-white p-3">
+              <div className="flex items-center justify-between border-b border-slate-200 pb-1.5">
+                <p className="font-bold text-slate-900 uppercase text-[10px] tracking-wider">
+                  Periodontal Examination &amp; Attachment Status
+                </p>
+                <span className="text-[10px] text-slate-500 font-semibold">
+                  {caseData.periodontalChart ? "6-Site Clinical Probing Record" : "Summary Findings Only"}
+                </span>
+              </div>
+
+              {caseData.periodontalChart ? (() => {
+                const perioSummary = calculatePeriodontalSummary(caseData.periodontalChart);
+                const recordedTeeth = Object.values(caseData.periodontalChart.teeth || {}).filter(
+                  (t) =>
+                    !t.isMissing &&
+                    t.sites &&
+                    Object.values(t.sites).some(
+                      (s) => (s?.probingDepth !== null && s?.probingDepth !== undefined) || s?.bleedingOnProbing
+                    )
+                );
+
+                return (
+                  <div className="mt-2 space-y-2 text-[11px]">
+                    {/* KPI Metrics */}
+                    <div className="grid grid-cols-5 gap-2 rounded bg-slate-50 p-2 text-center text-[10px]">
+                      <div>
+                        <span className="text-slate-500 font-bold block">PROBED TEETH</span>
+                        <span className="font-bold text-slate-900 text-xs">{perioSummary.totalProbedTeeth} / 32</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-bold block">BOP SCORE</span>
+                        <span className={`font-bold text-xs ${perioSummary.bleedingOnProbingPercentage >= 10 ? "text-rose-600" : "text-emerald-700"}`}>
+                          {perioSummary.bleedingOnProbingPercentage}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-bold block">POCKETS 4-5mm</span>
+                        <span className="font-bold text-amber-600 text-xs">{perioSummary.sitesWithPockets4to5mm} sites</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-bold block">POCKETS &ge;6mm</span>
+                        <span className={`font-bold text-xs ${perioSummary.sitesWithPockets6mmOrMore > 0 ? "text-rose-600" : "text-slate-700"}`}>
+                          {perioSummary.sitesWithPockets6mmOrMore} sites
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 font-bold block">MAX CAL</span>
+                        <span className="font-bold text-slate-900 text-xs">
+                          {perioSummary.maxAttachmentLossMm !== null ? `${perioSummary.maxAttachmentLossMm} mm` : "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Examination Completeness Notice */}
+                    {!perioSummary.isCompleteExamination && (
+                      <p className="rounded bg-amber-50 px-2 py-1 text-[10px] text-amber-900 border border-amber-200">
+                        <strong>⚠️ Partial Periodontal Examination:</strong> Recorded {perioSummary.totalProbedTeeth} of 32 teeth. Full-mouth periodontal staging under AAP/EFP 2018 guidelines requires complete 6-site probing of all present teeth.
+                      </p>
+                    )}
+
+                    {/* Recorded Teeth Table */}
+                    {recordedTeeth.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-[10px] border border-slate-200">
+                          <thead className="bg-slate-100 font-bold uppercase text-slate-600">
+                            <tr>
+                              <th className="p-1 border-r border-slate-200">Tooth</th>
+                              <th className="p-1 border-r border-slate-200">Buccal PD (DB &bull; B &bull; MB)</th>
+                              <th className="p-1 border-r border-slate-200">Lingual/Palatal PD (DL &bull; L &bull; ML)</th>
+                              <th className="p-1 border-r border-slate-200">Max CAL</th>
+                              <th className="p-1 border-r border-slate-200">Mobility</th>
+                              <th className="p-1">Furcation</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {recordedTeeth.map((rec) => {
+                              const bSites = BUCCAL_SITE_KEYS.map((k) => {
+                                const s = rec.sites?.[k];
+                                const pdStr = s?.probingDepth !== null && s?.probingDepth !== undefined ? `${s.probingDepth}mm` : "—";
+                                return s?.bleedingOnProbing ? `${pdStr}*` : pdStr;
+                              }).join(" / ");
+
+                              const lSites = LINGUAL_SITE_KEYS.map((k) => {
+                                const s = rec.sites?.[k];
+                                const pdStr = s?.probingDepth !== null && s?.probingDepth !== undefined ? `${s.probingDepth}mm` : "—";
+                                return s?.bleedingOnProbing ? `${pdStr}*` : pdStr;
+                              }).join(" / ");
+
+                              const calVals = Object.values(rec.sites || {})
+                                .map((s) => s?.clinicalAttachmentLevel)
+                                .filter((c): c is number => c !== null && c !== undefined);
+                              const maxCal = calVals.length > 0 ? `${Math.max(...calVals)}mm` : "—";
+
+                              return (
+                                <tr key={rec.toothNumber} className="hover:bg-slate-50">
+                                  <td className="p-1 font-bold border-r border-slate-200">
+                                    #{rec.toothNumber} {rec.fdiNumber ? `(FDI ${rec.fdiNumber})` : ""}
+                                  </td>
+                                  <td className="p-1 border-r border-slate-200 font-mono text-[9px]">{bSites}</td>
+                                  <td className="p-1 border-r border-slate-200 font-mono text-[9px]">{lSites}</td>
+                                  <td className="p-1 border-r border-slate-200 font-semibold">{maxCal}</td>
+                                  <td className="p-1 border-r border-slate-200">
+                                    {rec.mobility && rec.mobility !== "0" ? `Grade ${rec.mobility}` : "Normal"}
+                                  </td>
+                                  <td className="p-1">
+                                    {rec.furcation && rec.furcation !== "0" ? `Class ${rec.furcation}` : "None"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                        <p className="mt-1 text-[9px] text-slate-500 italic">
+                          * Asterisk indicates bleeding on probing (BOP) at that site. Conventions: PD in mm; GM relative to CEJ (+ = recession, - = overgrowth); CAL = PD + GM.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-[10px] text-slate-500 italic">
+                        No individual site measurements recorded yet.
+                      </p>
+                    )}
+                  </div>
+                );
+              })() : (
+                <div className="mt-1.5 text-[11px] text-slate-700">
+                  <p>
+                    Probing: {caseData.periodontalAssessment?.probingDepth || caseData.clinicalExamination.probing || "Not recorded"} &bull; Bleeding: {caseData.periodontalAssessment?.bleedingOnProbing || "Not tested"} &bull; Furcation: {caseData.periodontalAssessment?.furcation || "None"} &bull; Recession: {caseData.periodontalAssessment?.recession || "None"}
+                  </p>
+                  <p className="mt-1 text-[10px] text-slate-400 italic">
+                    (No 6-site probing matrix was charted for this consultation record.)
+                  </p>
+                </div>
+              )}
+            </div>
+
             <div className="mt-2 text-[11px] text-slate-600">
               <span className="font-bold text-slate-800">Radiographic Status: </span>
               <span>No radiographic image was supplied with this consultation.</span>
@@ -306,94 +447,124 @@ function ClinicalReportContent({
           </section>
 
           {/* Section 3: Clinician Review & Decision Trace */}
-          <section className="page-break-inside-avoid rounded-xl border-2 border-indigo-700 bg-indigo-50/20 p-4">
-            <div className="flex items-center justify-between border-b border-indigo-200 pb-2">
+          <section
+            className={`page-break-inside-avoid rounded-xl border-2 p-4 ${
+              currentReviewStatus === "reviewed"
+                ? "border-emerald-600 bg-emerald-50/20"
+                : "border-amber-400 bg-amber-50/30"
+            }`}
+          >
+            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
               <div className="flex items-center gap-2">
-                <span className="rounded bg-indigo-800 px-2 py-0.5 font-bold uppercase tracking-wider text-white text-[10px]">
+                <span
+                  className={`rounded px-2 py-0.5 font-bold uppercase tracking-wider text-white text-[10px] ${
+                    currentReviewStatus === "reviewed"
+                      ? "bg-emerald-800"
+                      : "bg-amber-800"
+                  }`}
+                >
                   3. Clinician Review &amp; Decision Trace
                 </span>
                 <span className="text-xs font-bold text-slate-950">
-                  Licensed Attending Dentist Determination
+                  {currentReviewStatus === "reviewed"
+                    ? "Licensed Attending Dentist Determination (Verified)"
+                    : "Attending Dentist Review Pending"}
                 </span>
               </div>
               <span
                 className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
                   currentReviewStatus === "reviewed"
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    : currentReviewStatus === "needs_review"
-                    ? "bg-amber-100 text-amber-900 border border-amber-300"
-                    : "bg-slate-100 text-slate-800 border border-slate-300"
+                    : "bg-amber-100 text-amber-900 border border-amber-300"
                 }`}
               >
                 Status: {currentReviewStatus.replace("_", " ")}
               </span>
             </div>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 text-[11px]">
-              <div>
-                <p><span className="font-bold text-slate-900">Reviewing Clinician:</span> {review?.reviewedBy || "Attending Dental Professional"}</p>
-                <p className="mt-1">
-                  <span className="font-bold text-slate-900">Decision Recorded:</span>{" "}
-                  {review?.reviewedAt ? new Date(review.reviewedAt).toLocaleString() : "Review pending / Not yet finalized"}
+            {currentReviewStatus !== "reviewed" ? (
+              <div className="mt-3 rounded-lg border border-amber-300 bg-white p-3 text-xs text-amber-950 space-y-1.5">
+                <p className="font-bold">
+                  ⚠️ PENDING CLINICIAN VERIFICATION NOTICE
                 </p>
-                <p className="mt-1">
-                  <span className="font-bold text-slate-900">Diagnostic Concurrence:</span>{" "}
-                  <span className="font-semibold text-indigo-900">
-                    {review?.corrections?.agreedWithAiDiagnosis
-                      ? "Concurred with AI Leading Hypothesis"
-                      : review?.corrections?.finalDiagnosis
-                      ? "Clinician Override / Custom Clinical Diagnosis"
-                      : "Pending review"}
+                <p className="leading-relaxed text-amber-900">
+                  This report has not yet been reviewed or signed off by an attending dental professional. The diagnostic considerations and treatment options presented in this document represent automated clinical decision support only and must NOT be interpreted as a confirmed diagnosis or clinical treatment order.
+                </p>
+                <div className="mt-2 pt-2 border-t border-amber-200 text-[11px] text-slate-700 grid grid-cols-2 gap-2">
+                  <p><span className="font-semibold">Reviewing Clinician:</span> Not yet assigned</p>
+                  <p><span className="font-semibold">Confirmed Clinician Diagnosis:</span> [Pending in-person clinician examination]</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="mt-3 grid grid-cols-2 gap-3 text-[11px]">
+                  <div>
+                    <p>
+                      <span className="font-bold text-slate-900">Reviewing Clinician:</span>{" "}
+                      <span className="font-semibold text-emerald-950">{review?.reviewedBy}</span>
+                    </p>
+                    <p className="mt-1">
+                      <span className="font-bold text-slate-900">Decision Recorded:</span>{" "}
+                      {review?.reviewedAt ? new Date(review.reviewedAt).toLocaleString() : "Recorded"}
+                    </p>
+                    <p className="mt-1">
+                      <span className="font-bold text-slate-900">Diagnostic Concurrence:</span>{" "}
+                      <span className="font-semibold text-indigo-900">
+                        {review?.corrections?.agreedWithAiDiagnosis
+                          ? "Concurred with AI Leading Hypothesis"
+                          : "Clinician Override / Custom Clinical Diagnosis"}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div>
+                    <p>
+                      <span className="font-bold text-slate-900">Confirmed Clinician Diagnosis:</span>{" "}
+                      <span className="font-bold text-slate-950">
+                        {review?.corrections?.finalDiagnosis || leadingDiagnosis.diagnosis}
+                      </span>
+                    </p>
+                    {review?.corrections?.diagnosisNotes && (
+                      <p className="mt-1 text-slate-700">
+                        <span className="font-bold">Clinical Rationale:</span> {review.corrections.diagnosisNotes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Confirmed Treatment Plan & Procedural Orders */}
+                <div className="mt-3 border-t border-slate-200 pt-2.5 text-[11px]">
+                  <span className="font-bold text-slate-900">Confirmed Treatment Plan: </span>
+                  <span className="text-slate-800 font-medium">
+                    {review?.corrections?.treatmentPlan || "To be formulated by attending clinician."}
                   </span>
-                </p>
-              </div>
+                  {review?.corrections?.treatmentPlanNotes && (
+                    <p className="mt-1 text-slate-600">
+                      <span className="font-bold">Treatment Rationale:</span> {review.corrections.treatmentPlanNotes}
+                    </p>
+                  )}
+                </div>
 
-              <div>
-                <p>
-                  <span className="font-bold text-slate-900">Confirmed Clinician Diagnosis:</span>{" "}
-                  <span className="font-bold text-slate-950">
-                    {review?.corrections?.finalDiagnosis || leadingDiagnosis.diagnosis}
-                  </span>
-                </p>
-                {review?.corrections?.diagnosisNotes && (
-                  <p className="mt-1 text-slate-700">
-                    <span className="font-bold">Clinical Rationale:</span> {review.corrections.diagnosisNotes}
-                  </p>
+                {/* Additional Observations & Notes if any */}
+                {(review?.corrections?.additionalObservations || review?.notes) && (
+                  <div className="mt-2.5 grid grid-cols-2 gap-3 border-t border-slate-200 pt-2 text-[11px]">
+                    {review?.corrections?.additionalObservations && (
+                      <p>
+                        <span className="font-bold text-slate-900">Additional Observations:</span>{" "}
+                        {review.corrections.additionalObservations}
+                      </p>
+                    )}
+                    {review?.notes && (
+                      <p>
+                        <span className="font-bold text-slate-900">Clinician Notes:</span> {review.notes}
+                      </p>
+                    )}
+                  </div>
                 )}
-              </div>
-            </div>
-
-            {/* Confirmed Treatment Plan & Procedural Orders */}
-            <div className="mt-3 border-t border-indigo-100 pt-2.5 text-[11px]">
-              <span className="font-bold text-slate-900">Confirmed Treatment Plan: </span>
-              <span className="text-slate-800 font-medium">
-                {review?.corrections?.treatmentPlan || "To be formulated by attending clinician."}
-              </span>
-              {review?.corrections?.treatmentPlanNotes && (
-                <p className="mt-1 text-slate-600">
-                  <span className="font-bold">Treatment Rationale:</span> {review.corrections.treatmentPlanNotes}
-                </p>
-              )}
-            </div>
-
-            {/* Additional Observations & Notes if any */}
-            {(review?.corrections?.additionalObservations || review?.notes) && (
-              <div className="mt-2.5 grid grid-cols-2 gap-3 border-t border-indigo-100 pt-2 text-[11px]">
-                {review?.corrections?.additionalObservations && (
-                  <p>
-                    <span className="font-bold text-slate-900">Additional Observations:</span>{" "}
-                    {review.corrections.additionalObservations}
-                  </p>
-                )}
-                {review?.notes && (
-                  <p>
-                    <span className="font-bold text-slate-900">Clinician Notes:</span> {review.notes}
-                  </p>
-                )}
-              </div>
+              </>
             )}
 
-            <p className="mt-2 text-[10px] text-slate-500 italic">
+            <p className="mt-2.5 text-[10px] text-slate-500 italic">
               Notice: Clinician review documents the attending dental practitioner&apos;s independent clinical judgment and definitive decisions. It does not certify the algorithmic accuracy of assistive AI outputs.
             </p>
           </section>
@@ -623,11 +794,27 @@ function ClinicalReportContent({
 
             <div className="mt-6 grid grid-cols-2 gap-8 border-t border-slate-300 pt-4">
               <div>
-                <p className="font-semibold text-slate-600">Reviewing Clinician Signature:</p>
-                <div className="mt-6 border-b border-slate-400 pb-1" />
+                <p className="font-semibold text-slate-700">Reviewing Clinician Verification:</p>
+                {review?.reviewedBy ? (
+                  <div className="mt-2 text-xs">
+                    <p className="font-bold text-emerald-900">✓ Electronically verified by: {review.reviewedBy}</p>
+                    <p className="text-[10px] text-slate-500">
+                      Timestamp: {review.reviewedAt ? new Date(review.reviewedAt).toLocaleString() : new Date().toLocaleString()}
+                    </p>
+                    <div className="mt-4 border-b border-slate-400 pb-1 text-[10px] text-slate-400">
+                      Physical signature / stamp (if required for clinic record):
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-6">
+                    <div className="border-b border-slate-400 pb-1 text-[10px] text-slate-400">
+                      Signature required before initiating clinical care:
+                    </div>
+                  </div>
+                )}
               </div>
               <div>
-                <p className="font-semibold text-slate-600">Date &amp; License Number:</p>
+                <p className="font-semibold text-slate-700">Date &amp; Professional License Number:</p>
                 <div className="mt-6 border-b border-slate-400 pb-1" />
               </div>
             </div>

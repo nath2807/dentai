@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import { formatToothWithSystem } from "@/lib/tooth-numbering";
+import { getCloudSyncClient, type SyncClientState } from "@/lib/cloud-sync-client";
 
 export type IconName =
   | "dashboard"
@@ -29,7 +30,9 @@ export type IconName =
   | "info"
   | "copy"
   | "menu"
-  | "close";
+  | "close"
+  | "cloud"
+  | "sync";
 
 export function Icon({
   name,
@@ -177,6 +180,16 @@ export function Icon({
         <line x1="6" y1="6" x2="18" y2="18" />
       </>
     ),
+    cloud: (
+      <>
+        <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+      </>
+    ),
+    sync: (
+      <>
+        <path d="M21.5 2v6h-6M21.34 15.57a9 9 0 1 1-.57-8.38l5.67-5.67" />
+      </>
+    ),
   };
 
   return <svg {...common}>{paths[name]}</svg>;
@@ -210,6 +223,82 @@ export function Logo({ size = 32 }: { size?: number }) {
         <path d="M12 4.5V14" />
       </svg>
     </div>
+  );
+}
+
+export function CloudSyncBadge() {
+  const [syncState, setSyncState] = useState<SyncClientState | null>(null);
+
+  useEffect(() => {
+    const client = getCloudSyncClient();
+    const unsubscribe = client.subscribe((state) => {
+      setSyncState(state);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (!syncState) return null;
+
+  if (syncState.isAuthenticated && syncState.currentUser) {
+    const statusLabel =
+      syncState.status === "syncing"
+        ? "Syncing..."
+        : syncState.status === "conflict"
+        ? "Conflict"
+        : syncState.status === "error"
+        ? "Sync Error"
+        : "Cloud Synced";
+
+    const statusDotColor =
+      syncState.status === "syncing"
+        ? "bg-blue-500 animate-pulse"
+        : syncState.status === "conflict"
+        ? "bg-amber-500"
+        : syncState.status === "error"
+        ? "bg-red-500"
+        : "bg-emerald-500";
+
+    return (
+      <Link
+        href="/settings"
+        className="block rounded-lg border border-teal-200/90 bg-teal-50/80 p-2.5 transition hover:bg-teal-100/70"
+        title="Manage cloud storage and account settings"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-800 text-[10px] font-bold text-white uppercase">
+              {syncState.currentUser.name.slice(0, 2)}
+            </span>
+            <div className="min-w-0 truncate">
+              <p className="truncate text-xs font-semibold text-slate-900 leading-tight">
+                {syncState.currentUser.name}
+              </p>
+              <p className="truncate text-[10px] text-teal-800 leading-tight">
+                {syncState.currentUser.organization || syncState.currentUser.role}
+              </p>
+            </div>
+          </div>
+          <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold text-slate-600 pl-1">
+            <span className={`h-1.5 w-1.5 rounded-full ${statusDotColor}`} />
+            <span>{statusLabel}</span>
+          </span>
+        </div>
+      </Link>
+    );
+  }
+
+  return (
+    <Link
+      href="/settings"
+      className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/90 p-2 transition hover:bg-slate-100 text-xs"
+      title="Configure cloud storage or sign in"
+    >
+      <div className="flex items-center gap-1.5 text-slate-600">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+        <span className="text-[11px] font-medium">Local Browser Storage</span>
+      </div>
+      <span className="text-[10px] font-semibold text-teal-700 underline">Sign in</span>
+    </Link>
   );
 }
 
@@ -284,6 +373,11 @@ export function AppShell({
             </Link>
           </div>
         </nav>
+
+        {/* Cloud Sync & Identity Badge */}
+        <div className="px-4 pb-2">
+          <CloudSyncBadge />
+        </div>
 
         {/* Workspace Governance & Safety Card */}
         <div className="m-4 rounded-xl bg-slate-50/80 p-3.5 border border-slate-200/80 text-xs">
@@ -398,13 +492,17 @@ export function AppShell({
                 </nav>
               </div>
 
-              <div className="rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs">
-                <span className="font-bold text-teal-800 text-[11px] uppercase">
-                  Assistive Decision Support
-                </span>
-                <p className="mt-1 text-[11px] text-slate-500 leading-4">
-                  Preserves clinician oversight. Local browser storage only.
-                </p>
+              <div className="space-y-3">
+                <CloudSyncBadge />
+
+                <div className="rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs">
+                  <span className="font-bold text-teal-800 text-[11px] uppercase">
+                    Assistive Decision Support
+                  </span>
+                  <p className="mt-1 text-[11px] text-slate-500 leading-4">
+                    Preserves clinician oversight. Local browser storage only.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

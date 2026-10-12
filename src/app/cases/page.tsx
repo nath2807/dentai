@@ -18,8 +18,11 @@ import {
   type StorageStats,
 } from "@/lib/case-storage";
 import { formatToothWithSystem } from "@/lib/tooth-numbering";
+import { getCloudSyncClient, type SyncClientState } from "@/lib/cloud-sync-client";
 
 export default function CasesPage() {
+  const [syncState, setSyncState] = useState<SyncClientState | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [cases, setCases] = useState<StoredCase[]>([]);
   const [stats, setStats] = useState<StorageStats>({
     caseCount: 0,
@@ -42,8 +45,26 @@ export default function CasesPage() {
     const timer = window.setTimeout(() => {
       refreshCases();
     }, 0);
-    return () => window.clearTimeout(timer);
+    const client = getCloudSyncClient();
+    const unsubscribe = client.subscribe((state) => {
+      setSyncState(state);
+    });
+    return () => {
+      window.clearTimeout(timer);
+      unsubscribe();
+    };
   }, []);
+
+  async function handleCloudSync() {
+    setIsSyncing(true);
+    try {
+      const client = getCloudSyncClient();
+      await client.sync();
+      refreshCases();
+    } finally {
+      setIsSyncing(false);
+    }
+  }
 
   const totalCases = cases.length;
   const analyzedCasesCount = cases.filter((c) => c.status === "analyzed" || c.analysis !== null).length;
@@ -128,6 +149,17 @@ export default function CasesPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
+            {syncState?.isAuthenticated && (
+              <button
+                type="button"
+                onClick={handleCloudSync}
+                disabled={isSyncing}
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-white px-3.5 text-xs font-bold text-teal-800 transition hover:bg-teal-50 disabled:opacity-50"
+              >
+                <Icon name="sync" size={14} className={isSyncing ? "animate-spin" : ""} />
+                <span>{isSyncing ? "Syncing..." : "Sync Cloud"}</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={handleLoadBenchmarks}

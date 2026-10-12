@@ -13,6 +13,7 @@ import {
 } from "@/lib/case-storage";
 import type { ClinicalAnalysis, EvidenceMapItem } from "@/lib/clinical-analysis";
 import { ClinicianReviewTrace } from "@/components/clinician-review-trace";
+import { PeriodontalChart } from "@/components/periodontal-chart";
 
 export default function CaseDetailPage(props: {
   params: Promise<{ id: string }>;
@@ -283,6 +284,10 @@ function CaseDetailContent({
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-[10px] font-bold text-teal-800 border border-teal-200">
+                <Icon name="cloud" size={11} />
+                Cloud Enabled
+              </span>
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-semibold text-slate-700 border border-slate-200">
                 Status: {status}
               </span>
@@ -395,6 +400,41 @@ function CaseDetailContent({
                 )}
               </div>
             )}
+
+            {/* Structured Periodontal Chart Inspection */}
+            <div className="mt-5 border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded bg-teal-50 text-teal-700">
+                    <Icon name="chart" size={14} />
+                  </div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Periodontal Examination &amp; Probing Data
+                  </h3>
+                </div>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  {caseData.periodontalChart ? "Structured 6-Site Record" : "Summary Observations"}
+                </span>
+              </div>
+
+              {caseData.periodontalChart ? (
+                <PeriodontalChart
+                  chartData={caseData.periodontalChart}
+                  readOnly
+                  initialSelectedTooth={caseData.toothAssessment?.toothNumber || "19"}
+                />
+              ) : (
+                <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-3 text-xs text-slate-600">
+                  <p className="font-semibold text-slate-800">Summary Periodontal Observations:</p>
+                  <p className="mt-1">
+                    Probing Depths: {caseData.periodontalAssessment?.probingDepth || caseData.clinicalExamination.probing || "Not recorded"} &bull; Bleeding: {caseData.periodontalAssessment?.bleedingOnProbing || "Not tested"} &bull; Furcation: {caseData.periodontalAssessment?.furcation || "None"} &bull; Recession: {caseData.periodontalAssessment?.recession || "None"}
+                  </p>
+                  <p className="mt-1.5 text-[11px] text-slate-500 italic">
+                    (No 6-site probing matrix was charted for this legacy consultation record.)
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
