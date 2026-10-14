@@ -6,16 +6,16 @@ import { safeErrorResponse } from "../../../../lib/security";
 import { handleDatabaseError } from "../../../../lib/db-client";
 
 export async function POST(req: Request) {
-  const session = await getSessionFromRequest(req);
-  if (!session) {
-    return safeErrorResponse(
-      401,
-      "Authentication required to migrate local clinical cases to cloud.",
-      "UNAUTHORIZED"
-    );
-  }
-
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return safeErrorResponse(
+        401,
+        "Authentication required to migrate local clinical cases to cloud.",
+        "UNAUTHORIZED"
+      );
+    }
+
     const body = await req.json();
     const parseResult = migrationRequestSchema.safeParse(body);
     if (!parseResult.success) {
@@ -43,7 +43,6 @@ export async function POST(req: Request) {
     const dbErr = handleDatabaseError(err);
     if (dbErr) return dbErr;
 
-    const message = err instanceof Error ? err.message : "Migration failed.";
-    return safeErrorResponse(500, message, "MIGRATION_FAILED");
+    return safeErrorResponse(500, "Migration failed.", "MIGRATION_FAILED");
   }
 }

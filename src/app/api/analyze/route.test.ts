@@ -285,4 +285,28 @@ describe("POST /api/analyze", () => {
       error: "AI analysis is temporarily unavailable. Please try again.",
     });
   });
+
+  it("enforces client rate limits and returns HTTP 429 when exceeded", async () => {
+    generateContent.mockResolvedValue({ text: JSON.stringify(validAnalysis) });
+    const clientIp = "192.168.100.200";
+
+    let lastResponse: Response | undefined;
+    for (let i = 0; i < 16; i++) {
+      lastResponse = await POST(
+        new Request("http://localhost/api/analyze", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-forwarded-for": clientIp,
+          },
+          body: JSON.stringify(clinicalCase),
+        })
+      );
+    }
+
+    expect(lastResponse?.status).toBe(429);
+    const body = await lastResponse?.json();
+    expect(body.error.code).toBe("RATE_LIMITED");
+    expect(body.error.message).toContain("Too many analysis requests");
+  });
 });

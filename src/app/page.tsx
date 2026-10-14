@@ -826,9 +826,9 @@ export default function LandingPage() {
             </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-6">
-              <div className="text-teal-400 font-bold text-sm">✓ Local Browser Persistence</div>
+              <div className="text-teal-400 font-bold text-sm">✓ Local-First &amp; Client Isolation</div>
               <p className="mt-2 text-xs leading-relaxed text-slate-300">
-                Cases remain securely in your local browser storage during demonstration mode, with zero cloud patient tracking.
+                Local-first workspace with optional authenticated cloud sync and strict client-side radiograph isolation (<code className="text-teal-300">radiograph: null</code>).
               </p>
             </div>
 

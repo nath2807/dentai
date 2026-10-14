@@ -66,6 +66,24 @@ export const PERMANENT_TEETH: ToothInfo[] = [
   { universal: "32", fdi: "48", palmer: "8┐", name: "Mandibular Right 3rd Molar (Wisdom)", arch: "mandibular", quadrant: "lower_right", region: "molar", quadrantLabel: "Lower Right (Mandibular)", isPrimary: false },
 ];
 
+export type ExplicitNumberingSystem = "fdi" | "universal" | "unknown";
+
+/**
+ * Detect explicit numbering system prefix before stripping
+ * e.g. "FDI 11", "ISO 11" -> "fdi"; "#11", "UNS 11", "Universal 11" -> "universal"
+ */
+export function detectExplicitSystem(input: string): ExplicitNumberingSystem {
+  if (!input) return "unknown";
+  const trimmed = input.trim();
+  if (/^(fdi|iso)\b/i.test(trimmed)) {
+    return "fdi";
+  }
+  if (/^(#|uns\b|universal\b)/i.test(trimmed)) {
+    return "universal";
+  }
+  return "unknown";
+}
+
 /**
  * Clean a tooth input string (e.g. "#19", "Tooth 19", "19", "T-19", "FDI 36")
  */
@@ -75,25 +93,40 @@ export function sanitizeToothInput(input: string): string {
     .trim()
     .replace(/^#+/, "")
     .replace(/^tooth\s*/i, "")
-    .replace(/^fdi\s*/i, "")
-    .replace(/^uns\s*/i, "")
+    .replace(/^(fdi|iso)\s*/i, "")
+    .replace(/^(uns|universal)\s*/i, "")
+    .replace(/^t-+/i, "")
     .trim();
 }
 
 /**
- * Resolve a tooth query by either Universal, FDI, or name
+ * Resolve a tooth query by either Universal, FDI, or name.
+ * If an explicit system prefix is present (e.g. "FDI 11" or "#11"),
+ * the explicit system is honored to prevent numeric collisions
+ * between overlapping FDI (11-18, 21-28, 31-32) and Universal (1-32) identifiers.
  */
 export function findTooth(query: string): ToothInfo | null {
+  if (!query) return null;
+  const system = detectExplicitSystem(query);
   const cleaned = sanitizeToothInput(query);
   if (!cleaned) return null;
 
-  // Direct match Universal
-  const byUniversal = PERMANENT_TEETH.find((t) => t.universal === cleaned);
-  if (byUniversal) return byUniversal;
+  if (system === "fdi") {
+    // Explicitly FDI/ISO: match against FDI notation strictly
+    const byFdi = PERMANENT_TEETH.find((t) => t.fdi === cleaned);
+    if (byFdi) return byFdi;
+  } else if (system === "universal") {
+    // Explicitly Universal/#/UNS: match against Universal notation strictly
+    const byUniversal = PERMANENT_TEETH.find((t) => t.universal === cleaned);
+    if (byUniversal) return byUniversal;
+  } else {
+    // No explicit prefix: check Universal first, then FDI
+    const byUniversal = PERMANENT_TEETH.find((t) => t.universal === cleaned);
+    if (byUniversal) return byUniversal;
 
-  // Direct match FDI
-  const byFdi = PERMANENT_TEETH.find((t) => t.fdi === cleaned);
-  if (byFdi) return byFdi;
+    const byFdi = PERMANENT_TEETH.find((t) => t.fdi === cleaned);
+    if (byFdi) return byFdi;
+  }
 
   // Case-insensitive name match
   const lower = cleaned.toLowerCase();
@@ -117,7 +150,17 @@ export function formatToothWithSystem(toothInput: string): string {
  * Convert Universal to FDI
  */
 export function universalToFdi(universal: string): string | null {
-  const tooth = PERMANENT_TEETH.find((t) => t.universal === sanitizeToothInput(universal));
+  if (!universal) return null;
+  const system = detectExplicitSystem(universal);
+  const cleaned = sanitizeToothInput(universal);
+  if (!cleaned) return null;
+
+  if (system === "fdi") {
+    const tooth = PERMANENT_TEETH.find((t) => t.fdi === cleaned);
+    return tooth ? tooth.fdi : null;
+  }
+
+  const tooth = PERMANENT_TEETH.find((t) => t.universal === cleaned);
   return tooth ? tooth.fdi : null;
 }
 
@@ -125,7 +168,17 @@ export function universalToFdi(universal: string): string | null {
  * Convert FDI to Universal
  */
 export function fdiToUniversal(fdi: string): string | null {
-  const tooth = PERMANENT_TEETH.find((t) => t.fdi === sanitizeToothInput(fdi));
+  if (!fdi) return null;
+  const system = detectExplicitSystem(fdi);
+  const cleaned = sanitizeToothInput(fdi);
+  if (!cleaned) return null;
+
+  if (system === "universal") {
+    const tooth = PERMANENT_TEETH.find((t) => t.universal === cleaned);
+    return tooth ? tooth.universal : null;
+  }
+
+  const tooth = PERMANENT_TEETH.find((t) => t.fdi === cleaned);
   return tooth ? tooth.universal : null;
 }
 

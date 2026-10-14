@@ -120,5 +120,33 @@ describe("tooth-numbering library", () => {
     expect(lowerLeft[7].universal).toBe("17");
     expect(lowerLeft[7].fdi).toBe("38");
   });
+
+  it("prevents numeric collisions between FDI and Universal numbering systems", () => {
+    // Collision #1: "11"
+    // FDI 11 = Maxillary Right Central Incisor (Universal #8)
+    // Universal #11 = Maxillary Left Canine (FDI 23)
+    expect(findTooth("FDI 11")?.universal).toBe("8");
+    expect(findTooth("ISO 11")?.universal).toBe("8");
+    expect(findTooth("#11")?.fdi).toBe("23");
+    expect(findTooth("UNS 11")?.fdi).toBe("23");
+    expect(findTooth("Universal 11")?.fdi).toBe("23");
+
+    // Collision #2: "26"
+    // FDI 26 = Maxillary Left 1st Molar (Universal #14)
+    // Universal #26 = Mandibular Right Lateral Incisor (FDI 42)
+    expect(findTooth("FDI 26")?.universal).toBe("14");
+    expect(findTooth("#26")?.fdi).toBe("42");
+
+    // Collision #3: "32"
+    // FDI 32 = Mandibular Left Lateral Incisor (Universal #23)
+    // Universal #32 = Mandibular Right 3rd Molar (FDI 48)
+    expect(findTooth("FDI 32")?.universal).toBe("23");
+    expect(findTooth("#32")?.fdi).toBe("48");
+
+    // Conversion helper robustness with explicit prefixes
+    expect(fdiToUniversal("FDI 11")).toBe("8");
+    expect(universalToFdi("#11")).toBe("23");
+  });
 });
+
 

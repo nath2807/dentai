@@ -6,12 +6,12 @@ import { safeErrorResponse } from "../../../../lib/security";
 import { handleDatabaseError } from "../../../../lib/db-client";
 
 export async function POST(req: Request) {
-  const session = await getSessionFromRequest(req);
-  if (!session) {
-    return safeErrorResponse(401, "Authentication required for cloud sync.", "UNAUTHORIZED");
-  }
-
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return safeErrorResponse(401, "Authentication required for cloud sync.", "UNAUTHORIZED");
+    }
+
     const body = await req.json();
     const parseResult = syncBatchRequestSchema.safeParse(body);
     if (!parseResult.success) {
@@ -37,7 +37,6 @@ export async function POST(req: Request) {
     const dbErr = handleDatabaseError(err);
     if (dbErr) return dbErr;
 
-    const message = err instanceof Error ? err.message : "Sync processing failed.";
-    return safeErrorResponse(500, message, "SYNC_FAILED");
+    return safeErrorResponse(500, "Sync processing failed.", "SYNC_FAILED");
   }
 }

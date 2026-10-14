@@ -80,6 +80,50 @@ export function isDatabaseConfigured(): boolean {
   return Boolean(url && url.length > 0);
 }
 
+export interface DatabaseSslConfig {
+  rejectUnauthorized: boolean;
+  ca?: string;
+}
+
+/**
+ * Determine SSL configuration for PostgreSQL connections.
+ * In production, TLS verification is strictly enforced (rejectUnauthorized: true).
+ * In non-production, self-signed certificates are only allowed if explicitly opted-in
+ * via DATABASE_SSL_ALLOW_SELF_SIGNED="true". Custom CA can be passed via DATABASE_SSL_CA.
+ */
+export function getDatabaseSslConfig(
+  connectionString: string,
+  nodeEnv: string = process.env.NODE_ENV || "development",
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env
+): DatabaseSslConfig | undefined {
+  const isProduction = nodeEnv === "production";
+  const sslRequired =
+    isProduction ||
+    connectionString.includes("sslmode=require") ||
+    connectionString.includes("supabase") ||
+    connectionString.includes("neon.tech") ||
+    connectionString.includes("amazonaws.com");
+
+  if (!sslRequired) {
+    return undefined;
+  }
+
+  // Strictly enforce rejectUnauthorized in production.
+  // In development/test, rejectUnauthorized may only be false if explicitly configured.
+  const allowSelfSigned = !isProduction && env.DATABASE_SSL_ALLOW_SELF_SIGNED === "true";
+  const rejectUnauthorized = !allowSelfSigned;
+
+  const sslConfig: DatabaseSslConfig = {
+    rejectUnauthorized,
+  };
+
+  if (env.DATABASE_SSL_CA?.trim()) {
+    sslConfig.ca = env.DATABASE_SSL_CA.trim();
+  }
+
+  return sslConfig;
+}
+
 /**
  * Retrieve or instantiate the PostgreSQL connection pool.
  * Throws DatabaseConfigurationError if DATABASE_URL is unset.
@@ -96,21 +140,14 @@ export function getPool(): Pool {
     );
   }
 
-  // Determine SSL configuration
-  const isProduction = process.env.NODE_ENV === "production";
-  const sslRequired =
-    isProduction ||
-    connectionString.includes("sslmode=require") ||
-    connectionString.includes("supabase") ||
-    connectionString.includes("neon.tech") ||
-    connectionString.includes("amazonaws.com");
+  const ssl = getDatabaseSslConfig(connectionString);
 
   const pool = new Pool({
     connectionString,
     max: 10, // Max concurrent connections per serverless container
     idleTimeoutMillis: 30000, // Close idle connections after 30s
     connectionTimeoutMillis: 5000, // 5s connection acquisition timeout
-    ssl: sslRequired ? { rejectUnauthorized: false } : undefined,
+    ssl,
   });
 
   // Handle unexpected idle pool errors without terminating process

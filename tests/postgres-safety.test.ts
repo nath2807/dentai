@@ -85,3 +85,41 @@ describe("persistent stores cannot perform bulk test cleanup", () => {
     expect(dbClient.withTransaction).not.toHaveBeenCalled();
   });
 });
+
+describe("PostgreSQL TLS / SSL verification enforcement", () => {
+  it("enforces rejectUnauthorized=true in production by default", () => {
+    const ssl = dbClient.getDatabaseSslConfig("postgresql://user:pass@ep-cool-db.neon.tech/neondb", "production", {});
+    expect(ssl).toBeDefined();
+    expect(ssl?.rejectUnauthorized).toBe(true);
+  });
+
+  it("never permits rejectUnauthorized=false in production even if DATABASE_SSL_ALLOW_SELF_SIGNED=true", () => {
+    const ssl = dbClient.getDatabaseSslConfig("postgresql://user:pass@ep-cool-db.neon.tech/neondb", "production", {
+      DATABASE_SSL_ALLOW_SELF_SIGNED: "true",
+    });
+    expect(ssl?.rejectUnauthorized).toBe(true);
+  });
+
+  it("passes through custom CA if provided", () => {
+    const ssl = dbClient.getDatabaseSslConfig("postgresql://user:pass@ep-cool-db.neon.tech/neondb", "production", {
+      DATABASE_SSL_CA: "-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----",
+    });
+    expect(ssl?.rejectUnauthorized).toBe(true);
+    expect(ssl?.ca).toBe("-----BEGIN CERTIFICATE-----\n...\n-----END CERTIFICATE-----");
+  });
+
+  it("permits rejectUnauthorized=false ONLY in non-production with explicit opt-in", () => {
+    const sslDev = dbClient.getDatabaseSslConfig("postgresql://user:pass@127.0.0.1:5432/db?sslmode=require", "development", {
+      DATABASE_SSL_ALLOW_SELF_SIGNED: "true",
+    });
+    expect(sslDev?.rejectUnauthorized).toBe(false);
+
+    const sslDevDefault = dbClient.getDatabaseSslConfig("postgresql://user:pass@127.0.0.1:5432/db?sslmode=require", "development", {});
+    expect(sslDevDefault?.rejectUnauthorized).toBe(true);
+  });
+
+  it("returns undefined when SSL is not required for non-production loopback connections", () => {
+    const ssl = dbClient.getDatabaseSslConfig("postgresql://user:pass@127.0.0.1:5432/db", "development", {});
+    expect(ssl).toBeUndefined();
+  });
+});

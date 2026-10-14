@@ -46,15 +46,56 @@ export interface AuditEvent {
   details?: string;
 }
 
+export const reviewSchema = z.object({
+  status: z.enum(["pending", "needs_review", "reviewed"]),
+  reviewedAt: z.string().optional(),
+  reviewedBy: z.string().optional(),
+  notes: z.string().optional(),
+  corrections: z
+    .object({
+      agreedWithAiDiagnosis: z.boolean().optional(),
+      finalDiagnosis: z.string().optional(),
+      diagnosisNotes: z.string().optional(),
+      treatmentPlan: z.string().optional(),
+      treatmentPlanNotes: z.string().optional(),
+      additionalObservations: z.string().optional(),
+    })
+    .optional(),
+});
+
+export const cloudMedicalHistorySchema = z
+  .object({
+    conditions: z.string().default(""),
+    medications: z.string().default(""),
+    allergies: z.string().default(""),
+  })
+  .catchall(z.string());
+
+export const cloudDentalHistorySchema = z
+  .object({
+    previousTreatment: z.string().default(""),
+    previousExtractions: z.string().default(""),
+    endodonticTreatment: z.string().default(""),
+    prostheticTreatment: z.string().default(""),
+    orthodonticTreatment: z.string().default(""),
+    oralHygiene: z.string().default(""),
+  })
+  .catchall(z.string());
+
+export const cloudCaseDataSchema = clinicalCaseSchema.extend({
+  medicalHistory: cloudMedicalHistorySchema,
+  dentalHistory: cloudDentalHistorySchema,
+});
+
 export const syncPushItemSchema = z.object({
   id: z.string().min(1, "Case ID is required."),
-  caseData: z.any(), // ClinicalCase validated separately
+  caseData: cloudCaseDataSchema,
   formValues: z.record(z.string(), z.string()).optional(),
-  analysis: z.any().nullable().optional(),
+  analysis: analysisSchema.nullable().optional(),
   status: z.enum(["draft", "analyzed", "reviewed"]).default("draft"),
   analysisStatus: z.enum(["current", "stale"]).default("current"),
   reviewStatus: z.enum(["pending", "needs_review", "reviewed"]).default("pending"),
-  review: z.any().nullable().optional(),
+  review: reviewSchema.nullable().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   version: z.number().int().nonnegative().optional(),
@@ -87,9 +128,24 @@ export interface SyncBatchResponse {
 export const migrationStrategyEnum = z.enum(["skip_existing", "overwrite_existing", "clone_as_new"]);
 export type MigrationStrategy = z.infer<typeof migrationStrategyEnum>;
 
+export const migrationCaseItemSchema = z.object({
+  id: z.string().min(1, "Case ID is required."),
+  caseData: cloudCaseDataSchema,
+  formValues: z.record(z.string(), z.string()).optional(),
+  analysis: analysisSchema.nullable().optional(),
+  status: z.enum(["draft", "analyzed", "reviewed"]).default("draft").optional(),
+  analysisStatus: z.enum(["current", "stale"]).default("current").optional(),
+  reviewStatus: z.enum(["pending", "needs_review", "reviewed"]).default("pending").optional(),
+  review: reviewSchema.nullable().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  deletedAt: z.string().nullable().optional(),
+});
+export type MigrationCaseItem = z.infer<typeof migrationCaseItemSchema>;
+
 export const migrationRequestSchema = z.object({
   expectedUserId: z.string().min(1).optional(),
-  cases: z.array(z.any()).min(1, "At least one case must be selected for migration.").max(100),
+  cases: z.array(migrationCaseItemSchema).min(1, "At least one case must be selected for migration.").max(100),
   strategy: migrationStrategyEnum.default("skip_existing"),
   userConsentGiven: z.boolean().refine((val) => val === true, {
     message: "Explicit clinician consent is required before migrating cases to cloud storage.",
@@ -107,25 +163,16 @@ export interface MigrationResult {
   completedAt: string;
 }
 
-const reviewSchema = z.object({
-  status: z.enum(["pending", "needs_review", "reviewed"]),
-  reviewedAt: z.string().optional(), reviewedBy: z.string().optional(), notes: z.string().optional(),
-  corrections: z.object({
-    agreedWithAiDiagnosis: z.boolean().optional(), finalDiagnosis: z.string().optional(),
-    diagnosisNotes: z.string().optional(), treatmentPlan: z.string().optional(),
-    treatmentPlanNotes: z.string().optional(), additionalObservations: z.string().optional(),
-  }).optional(),
-});
-
 export const cloudCaseRecordSchema = syncPushItemSchema.omit({ deleted: true }).extend({
-  userId: z.string().min(1), version: z.number().int().positive(),
-  caseData: clinicalCaseSchema.extend({
-    medicalHistory: z.object({ conditions: z.string(), medications: z.string(), allergies: z.string() }).catchall(z.string()),
-    dentalHistory: z.object({ previousTreatment: z.string(), previousExtractions: z.string(), endodonticTreatment: z.string(),
-      prostheticTreatment: z.string(), orthodonticTreatment: z.string(), oralHygiene: z.string() }).catchall(z.string()),
-  }), analysis: analysisSchema.nullable(),
-  review: reviewSchema.nullable().optional(), syncedAt: z.iso.datetime(),
-  createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(), deletedAt: z.iso.datetime().nullable().optional(),
+  userId: z.string().min(1),
+  version: z.number().int().positive(),
+  caseData: cloudCaseDataSchema,
+  analysis: analysisSchema.nullable(),
+  review: reviewSchema.nullable().optional(),
+  syncedAt: z.iso.datetime(),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+  deletedAt: z.iso.datetime().nullable().optional(),
 });
 
 export const syncBatchResponseSchema = z.object({

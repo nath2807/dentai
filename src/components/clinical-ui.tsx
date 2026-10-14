@@ -295,7 +295,7 @@ export function CloudSyncBadge() {
     >
       <div className="flex items-center gap-1.5 text-slate-600">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-        <span className="text-[11px] font-medium">Local Browser Storage</span>
+        <span className="text-[11px] font-medium">Local-First Workspace</span>
       </div>
       <span className="text-[10px] font-semibold text-teal-700 underline">Sign in</span>
     </Link>
@@ -392,7 +392,7 @@ export function AppShell({
           </p>
           <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-semibold text-slate-400">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            <span>Local Browser Storage Active</span>
+            <span>Local-First • radiograph: null</span>
           </div>
         </div>
       </aside>
@@ -500,7 +500,7 @@ export function AppShell({
                     Assistive Decision Support
                   </span>
                   <p className="mt-1 text-[11px] text-slate-500 leading-4">
-                    Preserves clinician oversight. Local browser storage only.
+                    Preserves clinician oversight. Local-first workspace with optional authenticated sync &amp; strict client-side radiograph isolation.
                   </p>
                 </div>
               </div>

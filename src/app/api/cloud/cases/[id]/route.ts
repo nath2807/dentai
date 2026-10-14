@@ -12,14 +12,13 @@ export async function GET(
   req: Request,
   props: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSessionFromRequest(req);
-  if (!session) {
-    return safeErrorResponse(401, "Authentication required.", "UNAUTHORIZED");
-  }
-
-  const { id } = await props.params;
-
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return safeErrorResponse(401, "Authentication required.", "UNAUTHORIZED");
+    }
+
+    const { id } = await props.params;
     const cloudCase = await cloudRepository.getCase(session.userId, id);
 
     if (!cloudCase) {
@@ -35,8 +34,7 @@ export async function GET(
     const dbErr = handleDatabaseError(err);
     if (dbErr) return dbErr;
 
-    const message = err instanceof Error ? err.message : "Failed to retrieve case.";
-    return safeErrorResponse(500, message, "INTERNAL_ERROR");
+    return safeErrorResponse(500, "Failed to retrieve case.", "INTERNAL_ERROR");
   }
 }
 
@@ -44,14 +42,13 @@ export async function PUT(
   req: Request,
   props: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSessionFromRequest(req);
-  if (!session) {
-    return safeErrorResponse(401, "Authentication required.", "UNAUTHORIZED");
-  }
-
-  const { id } = await props.params;
-
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return safeErrorResponse(401, "Authentication required.", "UNAUTHORIZED");
+    }
+
+    const { id } = await props.params;
     const body = await req.json();
     const expectedVersion =
       typeof body.version === "number" ? body.version : undefined;
@@ -88,11 +85,10 @@ export async function PUT(
     }
 
     if (err instanceof NotFoundError) {
-      return safeErrorResponse(404, `Case ${id} not found.`, "NOT_FOUND");
+      return safeErrorResponse(404, "Case not found.", "NOT_FOUND");
     }
 
-    const message = err instanceof Error ? err.message : "Failed to update case.";
-    return safeErrorResponse(400, message, "UPDATE_FAILED");
+    return safeErrorResponse(400, "Failed to update case.", "UPDATE_FAILED");
   }
 }
 
@@ -100,14 +96,13 @@ export async function DELETE(
   req: Request,
   props: { params: Promise<{ id: string }> }
 ) {
-  const session = await getSessionFromRequest(req);
-  if (!session) {
-    return safeErrorResponse(401, "Authentication required.", "UNAUTHORIZED");
-  }
-
-  const { id } = await props.params;
-
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return safeErrorResponse(401, "Authentication required.", "UNAUTHORIZED");
+    }
+
+    const { id } = await props.params;
     await cloudRepository.deleteCase(session.userId, id, session.email);
     return NextResponse.json({
       success: true,
@@ -118,9 +113,8 @@ export async function DELETE(
     if (dbErr) return dbErr;
 
     if (err instanceof NotFoundError) {
-      return safeErrorResponse(404, `Case ${id} not found.`, "NOT_FOUND");
+      return safeErrorResponse(404, "Case not found.", "NOT_FOUND");
     }
-    const message = err instanceof Error ? err.message : "Failed to delete case.";
-    return safeErrorResponse(400, message, "DELETE_FAILED");
+    return safeErrorResponse(400, "Failed to delete case.", "DELETE_FAILED");
   }
 }

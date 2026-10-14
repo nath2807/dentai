@@ -73,14 +73,14 @@ export default function DemoResultsPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/cases"
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+              className="glass-button glass-card-interactive inline-flex h-9 items-center justify-center gap-2 rounded-xl px-3.5 text-xs font-semibold text-slate-700 transition"
             >
               <Icon name="folder" size={15} />
               All Cases
             </Link>
             <Link
               href="/cases/new"
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-lg bg-teal-700 px-3.5 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-800"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl bg-teal-700 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
             >
               <Icon name="plus" size={15} />
               New Case Form
@@ -89,12 +89,12 @@ export default function DemoResultsPage() {
         </div>
 
         {/* Benchmark Selector Tabs */}
-        <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-xs">
-          <div className="mb-2 flex items-center justify-between px-1">
+        <div className="rounded-2xl glass-panel p-4 shadow-xs">
+          <div className="mb-2.5 flex items-center justify-between px-1">
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
               Select Reference Dental Case:
             </span>
-            <span className="text-[11px] text-amber-800 font-medium">
+            <span className="glass-pill px-2.5 py-0.5 text-[10px] text-amber-900 font-semibold bg-amber-50/80 border border-amber-200/80">
               Synthetic Educational Examples (Non-Clinical Demonstration)
             </span>
           </div>
@@ -110,10 +110,10 @@ export default function DemoResultsPage() {
                     setSelectedBenchmarkIndex(idx);
                     setUseSessionCase(false);
                   }}
-                  className={`rounded-lg px-3.5 py-2 text-left text-xs transition ${
+                  className={`rounded-xl px-3.5 py-2.5 text-left text-xs transition ${
                     isSelected
-                      ? "border border-teal-600 bg-teal-50 font-bold text-teal-950 shadow-xs"
-                      : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                      ? "glass-card glass-tint-teal border-teal-500/50 font-bold text-teal-950 shadow-xs"
+                      : "glass-card glass-card-interactive text-slate-700 hover:text-teal-900"
                   }`}
                 >
                   <div className="font-semibold text-xs">
@@ -132,10 +132,10 @@ export default function DemoResultsPage() {
             {sessionCase && (
               <button
                 onClick={() => setUseSessionCase(true)}
-                className={`rounded-lg px-3.5 py-2 text-left text-xs transition ${
+                className={`rounded-xl px-3.5 py-2.5 text-left text-xs transition ${
                   useSessionCase
-                    ? "border border-indigo-600 bg-indigo-50 font-bold text-indigo-950 shadow-xs"
-                    : "border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100"
+                    ? "glass-card glass-tint-indigo border-indigo-500/50 font-bold text-indigo-950 shadow-xs"
+                    : "glass-card glass-card-interactive text-slate-700 hover:text-indigo-900"
                 }`}
               >
                 <div className="font-semibold">Current Form Session Case</div>
@@ -149,10 +149,10 @@ export default function DemoResultsPage() {
 
         {/* Benchmark Case Summary Banner & Action Links */}
         {!useSessionCase && (
-          <div className="flex flex-col gap-4 rounded-xl border border-amber-300 bg-amber-50/60 p-4.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-4 rounded-2xl glass-card glass-tint-amber border-amber-300/60 p-4.5 sm:flex-row sm:items-center sm:justify-between shadow-xs">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="rounded-md bg-amber-700 px-2 py-0.5 text-[10px] font-bold text-white">
+                <span className="glass-pill bg-amber-700 px-2.5 py-0.5 text-[10px] font-bold text-white shadow-xs">
                   {activeBenchmark.id} (Synthetic Educational)
                 </span>
                 <span className="text-xs font-bold text-slate-900">
@@ -162,7 +162,7 @@ export default function DemoResultsPage() {
               <p className="text-[11px] text-slate-600">
                 Patient: {activeBenchmark.caseData.caseInformation.age}y {activeBenchmark.caseData.caseInformation.sex} • Tooth #{activeBenchmark.caseData.toothAssessment?.toothNumber} • Sensibility: {activeBenchmark.caseData.pulpalAssessment?.coldTest}
               </p>
-              <p className="text-[10px] text-amber-800 italic">
+              <p className="text-[10px] text-amber-900 italic">
                 Synthetic educational example for software workflow evaluation — not a validated medical diagnosis or real patient record.
               </p>
             </div>
@@ -170,7 +170,7 @@ export default function DemoResultsPage() {
               <Link
                 href={`/cases/${encodeURIComponent(activeBenchmark.id)}`}
                 onClick={() => handleOpenInWorkspace(activeBenchmark)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
+                className="inline-flex h-8.5 items-center gap-1.5 rounded-xl bg-teal-700 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
               >
                 <Icon name="spark" size={13} />
                 Open Full Case Workspace
@@ -178,7 +178,7 @@ export default function DemoResultsPage() {
               <Link
                 href={`/cases/${encodeURIComponent(activeBenchmark.id)}/report`}
                 onClick={() => handleOpenInWorkspace(activeBenchmark)}
-                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="glass-button glass-card-interactive inline-flex h-8.5 items-center gap-1.5 rounded-xl px-3.5 text-xs font-semibold text-slate-700 transition"
               >
                 <Icon name="report" size={13} />
                 View Report
@@ -197,7 +197,7 @@ export default function DemoResultsPage() {
         )}
 
         {/* Footer Disclaimer */}
-        <div className="flex items-start gap-3 rounded-xl border border-teal-100 bg-teal-50/70 p-4 text-xs text-teal-950">
+        <div className="flex items-start gap-3 rounded-2xl glass-card glass-tint-teal border-teal-200/50 p-4.5 text-xs text-teal-950 shadow-xs">
           <Icon name="folder" size={17} />
           <p className="leading-5">
             <span className="font-bold">Clinical Safety Notice:</span> Dentarith is an assistive clinical decision-support copilot, not an autonomous medical diagnostic device. All recommendations, differential diagnoses, and treatment considerations must be independently evaluated by a licensed dental professional before establishing a definitive diagnosis or initiating care.
@@ -210,8 +210,8 @@ export default function DemoResultsPage() {
 
 function LoadingState() {
   return (
-    <div role="status" className="rounded-xl border border-slate-200 bg-white p-12 text-center text-xs text-slate-500">
-      <div className="mr-auto mb-3 h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+    <div role="status" className="rounded-2xl glass-panel p-12 text-center text-xs text-slate-500 shadow-sm">
+      <div className="mx-auto mb-3 h-7 w-7 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
       Loading clinical assessment and reasoning...
     </div>
   );
@@ -219,7 +219,7 @@ function LoadingState() {
 
 function EmptyState() {
   return (
-    <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-6 text-xs leading-6 text-amber-950">
+    <div className="rounded-2xl glass-card glass-tint-amber px-6 py-6 text-xs leading-6 text-amber-950 border-amber-300/60 shadow-xs">
       No validated assessment is available for this case.{" "}
       <Link href="/cases/new" className="font-semibold underline">
         Return to the case form
@@ -246,7 +246,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
   return (
     <div className="space-y-6">
       {/* Clinician Advisory Header */}
-      <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/80 p-4 text-amber-950">
+      <div className="flex items-start gap-3 rounded-2xl glass-card glass-tint-amber border-amber-200/70 p-4.5 text-amber-950 shadow-xs">
         <Icon name="spark" size={18} />
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
@@ -259,7 +259,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
       </div>
 
       {/* 1. Clinical Summary */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
+      <section className="rounded-2xl glass-card p-5 sm:p-6 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-800">
           Clinical Case Summary
         </h2>
@@ -269,7 +269,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
       {/* 2. Information Categorization: Reported vs Observed vs Inferred */}
       <section className="grid gap-4 sm:grid-cols-3">
         {/* Reported Information */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+        <div className="rounded-2xl glass-card p-4.5 shadow-xs">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-blue-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
@@ -292,7 +292,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
         </div>
 
         {/* Observed Findings */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+        <div className="rounded-2xl glass-card p-4.5 shadow-xs">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
@@ -315,7 +315,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
         </div>
 
         {/* Inferred Findings */}
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+        <div className="rounded-2xl glass-card p-4.5 shadow-xs">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-purple-500" />
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
@@ -339,7 +339,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
       </section>
 
       {/* 3. Problem List */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
+      <section className="rounded-2xl glass-card p-5 sm:p-6 shadow-sm">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800">
           Identified Clinical Problem List
         </h2>
@@ -347,7 +347,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
           {analysis.problemList.map((problem, idx) => (
             <span
               key={`prob-${idx}`}
-              className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-800"
+              className="glass-pill border border-slate-200/80 bg-white/70 px-2.5 py-1 text-xs font-medium text-slate-800 shadow-xs"
             >
               {problem}
             </span>
@@ -357,16 +357,16 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
 
       {/* 4. Contradictions Section (Only shown if genuine contradictions exist) */}
       {analysis.contradictions && analysis.contradictions.length > 0 && (
-        <section className="rounded-xl border-2 border-red-300 bg-red-50/80 p-5 sm:p-6">
-          <div className="flex items-center gap-2 text-red-950">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-200 text-xs font-bold text-red-800">
+        <section className="rounded-2xl glass-card glass-tint-rose border-rose-300/70 p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center gap-2 text-rose-950">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-200 text-xs font-bold text-rose-800">
               !
             </span>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-red-900">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-rose-900">
               Clinical Contradictions &amp; Inconsistencies Detected
             </h2>
           </div>
-          <p className="mt-1 text-xs text-red-900/80">
+          <p className="mt-1 text-xs text-rose-900/80">
             Genuine conflicts identified between reported history and objective tests requiring clinician resolution:
           </p>
           <div className="mt-4 space-y-3">
@@ -378,7 +378,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
       )}
 
       {/* 5. Clinical Reasoning & Diagnostic Hierarchy */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
+      <section className="rounded-2xl glass-card p-5 sm:p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-800">
             Clinical Reasoning &amp; Diagnostic Hierarchy
@@ -408,7 +408,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
 
       {/* 6. Evidence Map */}
       {combinedEvidenceMap.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
+        <section className="rounded-2xl glass-card p-5 sm:p-6 shadow-sm">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-800">
             Evidence Map: Finding → Interpretation → Diagnostic Relevance
           </h2>
@@ -424,7 +424,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
       )}
 
       {/* 7. Differential Diagnoses */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
+      <section className="rounded-2xl glass-card p-5 sm:p-6 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-800">
           Differential Diagnoses (Considerations to Rule In/Out)
         </h2>
@@ -437,7 +437,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
 
       {/* 8. Missing Information Prioritization & Investigations */}
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+        <section className="rounded-2xl glass-card p-5 shadow-sm">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
             Missing Information Prioritization
           </h2>
@@ -449,7 +449,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
           </div>
         </section>
 
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+        <section className="rounded-2xl glass-card p-5 shadow-sm">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
             Suggested Investigations
           </h2>
@@ -473,7 +473,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
 
       {/* 9. Decision-Changing Evidence */}
       {analysis.decisionChangingEvidence && analysis.decisionChangingEvidence.length > 0 && (
-        <section className="rounded-xl border border-indigo-200 bg-indigo-50/60 p-5 sm:p-6">
+        <section className="rounded-2xl glass-card glass-tint-indigo border-indigo-200/60 p-5 sm:p-6 shadow-sm">
           <div className="flex items-center gap-2 text-indigo-950">
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-200 text-xs font-bold text-indigo-800">
               ?
@@ -497,7 +497,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
       )}
 
       {/* 10. Treatment Considerations */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-6">
+      <section className="rounded-2xl glass-card p-5 sm:p-6 shadow-sm">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
           Treatment Considerations (Not Autonomous Orders)
         </h2>
@@ -513,16 +513,16 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
 
       {/* 11. Red Flags & Urgent Alerts */}
       {analysis.redFlags.length > 0 && (
-        <section className="rounded-xl border border-red-200 bg-red-50/70 p-5">
-          <div className="flex items-center gap-2 text-red-900">
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-200 text-xs font-bold text-red-800">
+        <section className="rounded-2xl glass-card glass-tint-rose border-rose-200/70 p-5 shadow-xs">
+          <div className="flex items-center gap-2 text-rose-900">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-rose-200 text-xs font-bold text-rose-800">
               !
             </span>
             <h2 className="text-xs font-bold uppercase tracking-wider">
               Red Flags &amp; Urgent Clinical Alerts
             </h2>
           </div>
-          <ul className="mt-3 space-y-1.5 text-xs leading-5 text-red-900">
+          <ul className="mt-3 space-y-1.5 text-xs leading-5 text-rose-900">
             {analysis.redFlags.map((flag, idx) => (
               <li key={`rf-${idx}`} className="flex gap-2">
                 <span>•</span>
@@ -534,7 +534,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
       )}
 
       {/* 12. Diagnostic Uncertainty (Visually Obvious Callout) */}
-      <section className="rounded-xl border-2 border-dashed border-amber-300 bg-amber-50/50 p-5 sm:p-6">
+      <section className="rounded-2xl glass-card glass-tint-amber border-2 border-dashed border-amber-300/80 p-5 sm:p-6 shadow-xs">
         <div className="flex items-center gap-2 text-amber-900">
           <span className="text-sm font-bold text-amber-700">?</span>
           <h2 className="text-xs font-bold uppercase tracking-wider">
@@ -556,7 +556,7 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
 
       {/* 13. Safety Notes */}
       {analysis.safetyNotes && analysis.safetyNotes.length > 0 && (
-        <section className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-xs text-slate-600">
+        <section className="rounded-xl glass-card p-4 text-xs text-slate-600 shadow-xs">
           <p className="font-semibold text-slate-800">Clinician Safety Reminders:</p>
           <ul className="mt-2 space-y-1">
             {analysis.safetyNotes.map((note, idx) => (
@@ -570,47 +570,47 @@ function AnalysisContent({ analysis }: { analysis: ClinicalAnalysisType }) {
 }
 
 const categoryColors: Record<string, string> = {
-  pulpal: "bg-amber-100 text-amber-900 border-amber-200",
-  apical: "bg-red-100 text-red-900 border-red-200",
-  periodontal: "bg-emerald-100 text-emerald-900 border-emerald-200",
-  hard_tissue: "bg-sky-100 text-sky-900 border-sky-200",
-  soft_tissue: "bg-purple-100 text-purple-900 border-purple-200",
-  other: "bg-slate-100 text-slate-900 border-slate-200",
+  pulpal: "bg-amber-100/80 text-amber-900 border-amber-200",
+  apical: "bg-red-100/80 text-red-900 border-red-200",
+  periodontal: "bg-emerald-100/80 text-emerald-900 border-emerald-200",
+  hard_tissue: "bg-sky-100/80 text-sky-900 border-sky-200",
+  soft_tissue: "bg-purple-100/80 text-purple-900 border-purple-200",
+  other: "bg-slate-100/80 text-slate-900 border-slate-200",
 };
 
 const badgeColors: Record<string, string> = {
-  high: "bg-teal-100 text-teal-800 border-teal-200",
-  moderate: "bg-amber-100 text-amber-800 border-amber-200",
-  low: "bg-slate-100 text-slate-800 border-slate-200",
+  high: "bg-teal-100/80 text-teal-800 border-teal-200",
+  moderate: "bg-amber-100/80 text-amber-800 border-amber-200",
+  low: "bg-slate-100/80 text-slate-800 border-slate-200",
 };
 
 function LeadingDiagnosisCard({ item }: { item: PossibleDiagnosis }) {
   return (
-    <div className="rounded-xl border-2 border-teal-600/70 bg-teal-50/30 p-5 shadow-sm">
+    <div className="rounded-2xl glass-card glass-tint-teal border-2 border-teal-600/40 p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200/60 pb-3">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-teal-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
+          <span className="glass-pill bg-teal-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
             Rank #{item.rank} — Leading Consideration
           </span>
           <h3 className="text-base font-bold text-slate-950">{item.diagnosis}</h3>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
+            className={`glass-pill border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
               categoryColors[item.diagnosticCategory] || categoryColors.other
             }`}
           >
             {item.diagnosticCategory.replace("_", " ")}
           </span>
           <span
-            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
+            className={`glass-pill border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
               badgeColors[item.likelihood] || badgeColors.moderate
             }`}
           >
             {item.likelihood} likelihood
           </span>
           {item.evidenceType && (
-            <span className="rounded-full bg-slate-200/80 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+            <span className="glass-pill bg-slate-200/80 px-2 py-0.5 text-[10px] font-medium text-slate-700">
               {item.evidenceType}
             </span>
           )}
@@ -619,7 +619,7 @@ function LeadingDiagnosisCard({ item }: { item: PossibleDiagnosis }) {
 
       <div className="mt-4 space-y-3 text-xs leading-relaxed text-slate-700">
         {item.whyRanksHighest && (
-          <div className="rounded-lg border border-teal-200 bg-white p-3">
+          <div className="rounded-xl glass-card bg-white/80 p-3.5 border border-teal-200/70 shadow-xs">
             <span className="font-bold text-teal-950">Why It Ranks Highest: </span>
             <span className="text-slate-800">{item.whyRanksHighest}</span>
           </div>
@@ -657,31 +657,31 @@ function LeadingDiagnosisCard({ item }: { item: PossibleDiagnosis }) {
 
 function DiagnosisCard({ item }: { item: PossibleDiagnosis }) {
   return (
-    <div className="rounded-lg border border-slate-200/90 bg-slate-50/40 p-4">
+    <div className="rounded-xl glass-card border border-slate-200/80 bg-white/60 p-4 shadow-xs">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/60 pb-3">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-slate-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
+          <span className="glass-pill bg-slate-300 px-2 py-0.5 text-[10px] font-bold text-slate-800">
             Rank #{item.rank}
           </span>
           <h3 className="text-sm font-bold text-slate-900">{item.diagnosis}</h3>
         </div>
         <div className="flex items-center gap-2">
           <span
-            className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold capitalize ${
+            className={`glass-pill border px-2 py-0.5 text-[10px] font-semibold capitalize ${
               categoryColors[item.diagnosticCategory] || categoryColors.other
             }`}
           >
             {item.diagnosticCategory.replace("_", " ")}
           </span>
           <span
-            className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
+            className={`glass-pill border px-2.5 py-0.5 text-[11px] font-semibold capitalize ${
               badgeColors[item.likelihood] || badgeColors.moderate
             }`}
           >
             {item.likelihood} likelihood
           </span>
           {item.evidenceType && (
-            <span className="rounded-full bg-slate-200/70 px-2 py-0.5 text-[10px] font-medium text-slate-700">
+            <span className="glass-pill bg-slate-200/70 px-2 py-0.5 text-[10px] font-medium text-slate-700">
               {item.evidenceType}
             </span>
           )}
@@ -721,7 +721,7 @@ function DiagnosisCard({ item }: { item: PossibleDiagnosis }) {
 
 function EvidenceMapCard({ item }: { item: EvidenceMapItem }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50/70 p-3 text-xs sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-2 rounded-xl glass-card border border-slate-200/80 bg-white/70 p-3.5 text-xs sm:flex-row sm:items-center sm:justify-between shadow-xs">
       <div className="flex-1">
         <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
           Clinical Finding
@@ -753,7 +753,7 @@ function DifferentialCard({ item }: { item: DifferentialDiagnosisItem }) {
       : item.supportingFindings;
 
   return (
-    <div className="rounded-lg border border-slate-200/80 bg-white p-4">
+    <div className="rounded-xl glass-card border border-slate-200/80 bg-white/70 p-4 shadow-xs">
       <h3 className="text-xs font-bold text-slate-900">{item.diagnosis}</h3>
       <div className="mt-2 space-y-1.5 text-xs text-slate-600">
         <p>
@@ -791,7 +791,7 @@ function DifferentialCard({ item }: { item: DifferentialDiagnosisItem }) {
 
 function ContradictionCard({ item }: { item: Contradiction }) {
   return (
-    <div className="rounded-lg border border-red-200 bg-white p-3.5 text-xs">
+    <div className="rounded-xl glass-card border border-rose-200/80 bg-white/80 p-3.5 text-xs shadow-xs">
       <div className="grid gap-2 sm:grid-cols-2">
         <div>
           <span className="font-bold text-slate-700">Finding: </span>
@@ -802,10 +802,10 @@ function ContradictionCard({ item }: { item: Contradiction }) {
           <span className="text-slate-900">{item.expectedPattern}</span>
         </div>
       </div>
-      <div className="mt-2 border-t border-red-100 pt-2 text-xs">
+      <div className="mt-2 border-t border-rose-100 pt-2 text-xs">
         <p>
-          <span className="font-bold text-red-800">Conflict: </span>
-          <span className="text-red-950">{item.conflict}</span>
+          <span className="font-bold text-rose-800">Conflict: </span>
+          <span className="text-rose-950">{item.conflict}</span>
         </p>
         <p className="mt-1">
           <span className="font-bold text-slate-800">Clinical Impact: </span>
@@ -825,12 +825,12 @@ function MissingInfoList({ items }: { items: MissingInformationItem[] }) {
     <div className="space-y-4">
       {critical.length > 0 && (
         <div>
-          <span className="rounded bg-red-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-800">
+          <span className="glass-pill bg-rose-100/90 border border-rose-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-800">
             Critical — May Change Diagnostic Conclusion
           </span>
           <ul className="mt-2 space-y-1.5 text-xs text-slate-700">
             {critical.map((item, idx) => (
-              <li key={`crit-${idx}`} className="flex flex-col gap-0.5 border-l-2 border-red-500 pl-2">
+              <li key={`crit-${idx}`} className="flex flex-col gap-0.5 border-l-2 border-rose-500 pl-2">
                 <span className="font-semibold text-slate-900">{item.item}</span>
                 <span className="text-[11px] text-slate-500">{item.whyItMatters}</span>
               </li>
@@ -841,7 +841,7 @@ function MissingInfoList({ items }: { items: MissingInformationItem[] }) {
 
       {important.length > 0 && (
         <div>
-          <span className="rounded bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-900">
+          <span className="glass-pill bg-amber-100/90 border border-amber-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-900">
             Important — Confirms or Narrows Diagnosis
           </span>
           <ul className="mt-2 space-y-1.5 text-xs text-slate-700">
@@ -857,7 +857,7 @@ function MissingInfoList({ items }: { items: MissingInformationItem[] }) {
 
       {useful.length > 0 && (
         <div>
-          <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-700">
+          <span className="glass-pill bg-slate-100/90 border border-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-700">
             Useful — Improves Record Completeness
           </span>
           <ul className="mt-2 space-y-1.5 text-xs text-slate-700">

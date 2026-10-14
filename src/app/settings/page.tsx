@@ -42,8 +42,8 @@ export default function SettingsPage() {
     conflictCases: [],
   });
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [loginEmail, setLoginEmail] = useState("dr.chen@dentarith.clinic");
-  const [loginPassword, setLoginPassword] = useState("ClinicalPassword123!");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
   const [regName, setRegName] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
@@ -297,7 +297,7 @@ export default function SettingsPage() {
           </div>
           <Link
             href="/cases"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+            className="glass-button inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
           >
             <Icon name="folder" size={15} />
             View Cases
@@ -306,18 +306,18 @@ export default function SettingsPage() {
 
         {/* Feedback alerts */}
         {feedbackMessage && (
-          <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-xs font-medium text-emerald-900">
+          <div className="rounded-xl border border-emerald-300 bg-emerald-50/80 backdrop-blur-xs p-4 text-xs font-medium text-emerald-900">
             ✓ {feedbackMessage}
           </div>
         )}
         {errorMessage && (
-          <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-xs font-medium text-red-900">
+          <div className="rounded-xl border border-red-300 bg-red-50/80 backdrop-blur-xs p-4 text-xs font-medium text-red-900">
             ⚠️ {errorMessage}
           </div>
         )}
 
         {/* CLOUD IDENTITY & AUTHENTICATION SECTION */}
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <div className="rounded-2xl glass-panel p-6 shadow-xs">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center border-b border-slate-100 pb-4">
             <div className="flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700 ring-1 ring-teal-200">
@@ -357,7 +357,7 @@ export default function SettingsPage() {
 
           <div className="mt-5">
             {syncState.isAuthenticated && syncState.currentUser ? (
-              <div className="grid gap-4 sm:grid-cols-3 rounded-xl bg-teal-50/50 p-4 border border-teal-200/80">
+              <div className="grid gap-4 sm:grid-cols-3 rounded-xl glass-card glass-tint-teal p-4 border border-teal-200/80">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
                     Clinician Profile
@@ -385,7 +385,7 @@ export default function SettingsPage() {
                   <p className="text-xs font-mono font-medium text-slate-700 mt-0.5">
                     ID: {syncState.currentUser.id}
                   </p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800 mt-1">
+                  <span className="glass-pill inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-emerald-800 mt-1">
                     ✓ Role: {syncState.currentUser.role}
                   </span>
                 </div>
@@ -430,7 +430,7 @@ export default function SettingsPage() {
                           required
                           value={loginEmail}
                           onChange={(e) => setLoginEmail(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                           placeholder="doctor@clinic.com"
                         />
                       </div>
@@ -443,23 +443,25 @@ export default function SettingsPage() {
                           required
                           value={loginPassword}
                           onChange={(e) => setLoginPassword(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                           placeholder="••••••••"
                         />
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLoginEmail("dr.chen@dentarith.clinic");
-                          setLoginPassword("ClinicalPassword123!");
-                        }}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-900"
-                      >
-                        ⚡ Autofill Demo Clinician (Dr. Sarah Chen, DDS)
-                      </button>
+                      {process.env.NODE_ENV !== "production" ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLoginEmail("dr.chen@dentarith.clinic");
+                            setLoginPassword("ClinicalPassword123!");
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 hover:text-teal-900"
+                        >
+                          ⚡ Fill Demo Clinician (Dr. Sarah Chen, DDS)
+                        </button>
+                      ) : <span />}
 
                       <button
                         type="submit"
@@ -482,7 +484,7 @@ export default function SettingsPage() {
                           required
                           value={regName}
                           onChange={(e) => setRegName(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                           placeholder="Dr. Jane Smith, DDS"
                         />
                       </div>
@@ -495,7 +497,7 @@ export default function SettingsPage() {
                           required
                           value={regEmail}
                           onChange={(e) => setRegEmail(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                           placeholder="doctor@clinic.com"
                         />
                       </div>
@@ -508,7 +510,7 @@ export default function SettingsPage() {
                           required
                           value={regPassword}
                           onChange={(e) => setRegPassword(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                           placeholder="SecurePass123!"
                         />
                       </div>
@@ -523,7 +525,7 @@ export default function SettingsPage() {
                           type="text"
                           value={regLicense}
                           onChange={(e) => setRegLicense(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                           placeholder="DDS-CA-12345"
                         />
                       </div>
@@ -535,7 +537,7 @@ export default function SettingsPage() {
                           type="text"
                           value={regOrg}
                           onChange={(e) => setRegOrg(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs focus:border-teal-600 focus:outline-none"
+                          className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                           placeholder="City Dental Associates"
                         />
                       </div>
@@ -560,7 +562,7 @@ export default function SettingsPage() {
         {/* CLOUD SYNCHRONIZATION & CONSENT-DRIVEN MIGRATION WIZARD */}
         <div className="grid gap-6 sm:grid-cols-2">
           {/* Cloud Synchronization Status */}
-          <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-col justify-between rounded-xl glass-card p-5 shadow-xs">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -572,14 +574,14 @@ export default function SettingsPage() {
                   </h2>
                 </div>
                 <span
-                  className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                  className={`glass-pill inline-flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-bold ${
                     syncState.status === "synced"
-                      ? "bg-emerald-100 text-emerald-800"
+                      ? "bg-emerald-100/80 text-emerald-800"
                       : syncState.status === "syncing"
-                      ? "bg-blue-100 text-blue-800"
+                      ? "bg-blue-100/80 text-blue-800"
                       : syncState.status === "conflict"
-                      ? "bg-amber-100 text-amber-800"
-                      : "bg-slate-100 text-slate-700"
+                      ? "bg-amber-100/80 text-amber-800"
+                      : "bg-slate-100/80 text-slate-700"
                   }`}
                 >
                   <span
@@ -607,7 +609,7 @@ export default function SettingsPage() {
                 Pushes local case additions or clinician review sign-offs to your secure account and pulls updates made across operatory tablets or clinic computers.
               </p>
 
-              <div className="rounded-lg bg-slate-50 p-2.5 text-[11px] text-slate-600 space-y-1 border border-slate-100">
+              <div className="rounded-lg glass-card-subtle p-2.5 text-[11px] text-slate-600 space-y-1">
                 <div className="flex justify-between">
                   <span>Last server sync:</span>
                   <span className="font-semibold text-slate-800">
@@ -625,7 +627,7 @@ export default function SettingsPage() {
               </div>
 
               {syncState.conflictCases.length > 0 && (
-                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
+                <div className="rounded-lg border border-amber-300 bg-amber-50/80 backdrop-blur-xs p-3 text-xs text-amber-950">
                   <p className="font-bold">⚠️ Concurrency Conflict Detected</p>
                   <p className="mt-1 text-[11px]">
                     {syncState.conflictCases.length} case(s) need review. Your local edits and the server copies are both retained; neither is silently overwritten.
@@ -651,7 +653,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Local-to-Cloud Migration Wizard */}
-          <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-col justify-between rounded-xl glass-card p-5 shadow-xs">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
@@ -670,7 +672,7 @@ export default function SettingsPage() {
                 <label htmlFor="migration-source" className="mb-1 block text-xs font-semibold text-slate-600">Import source</label>
                 <select id="migration-source" value={migrationSource}
                   onChange={(e) => { setMigrationSource(e.target.value as "workspace" | "unassigned"); setMigrationConsent(false); }}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-800">
+                  className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs text-slate-800 focus:border-teal-600 focus:bg-white focus:outline-none transition-colors">
                   <option value="workspace">Current account workspace</option>
                   <option value="unassigned">Preserved unassigned browser cases</option>
                 </select>
@@ -683,7 +685,7 @@ export default function SettingsPage() {
                 <select
                   value={migrationStrategy}
                   onChange={(e) => setMigrationStrategy(e.target.value as MigrationStrategy)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-800 focus:border-teal-600 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200/90 bg-white/70 backdrop-blur-xs px-3 py-1.5 text-xs text-slate-800 focus:border-teal-600 focus:bg-white focus:outline-none transition-colors"
                 >
                   <option value="skip_existing">Skip Existing Cases (Preserve cloud records)</option>
                   <option value="overwrite_existing">Overwrite Existing Cases (Update cloud records)</option>
@@ -757,7 +759,7 @@ export default function SettingsPage() {
         {/* Existing Data Management Cards Grid */}
         <div className="grid gap-6 sm:grid-cols-2">
           {/* Export & Backup */}
-          <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-col justify-between rounded-xl glass-card p-5 shadow-xs">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
@@ -791,7 +793,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Import & Restore */}
-          <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-col justify-between rounded-xl glass-card p-5 shadow-xs">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
@@ -828,7 +830,7 @@ export default function SettingsPage() {
               </span>
               <label
                 htmlFor="import-file-input"
-                className="inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="glass-button inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-lg px-4 text-xs font-semibold text-slate-700 transition"
               >
                 <Icon name="plus" size={14} />
                 Select File to Import
@@ -837,7 +839,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Synthetic Benchmarks */}
-          <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+          <div className="flex flex-col justify-between rounded-xl glass-card p-5 shadow-xs">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
@@ -861,7 +863,7 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={handleSeedBenchmarks}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-teal-300 bg-teal-50 px-4 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
+                className="glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border-teal-300 bg-teal-50/80 px-4 text-xs font-semibold text-teal-800 transition hover:bg-teal-100"
               >
                 <Icon name="spark" size={14} />
                 Load Benchmark Cases
@@ -870,7 +872,7 @@ export default function SettingsPage() {
           </div>
 
           {/* Reset Workspace */}
-          <div className="flex flex-col justify-between rounded-xl border border-red-200 bg-red-50/40 p-5 shadow-xs">
+          <div className="flex flex-col justify-between rounded-xl glass-card glass-tint-rose p-5 shadow-xs">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-100 text-red-700">
@@ -892,7 +894,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => setShowClearModal(true)}
                 disabled={stats.caseCount === 0}
-                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-300 bg-white px-4 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border-red-300 px-4 text-xs font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Clear All Cases
               </button>
@@ -903,7 +905,7 @@ export default function SettingsPage() {
         {/* Clear Workspace Confirmation Modal */}
         {showClearModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-            <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl space-y-4">
+            <div className="w-full max-w-md rounded-2xl glass-panel p-6 shadow-xl space-y-4">
               <div className="flex items-center gap-3">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 text-red-700">
                   ⚠️

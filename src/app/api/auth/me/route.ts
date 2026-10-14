@@ -3,18 +3,17 @@ import { getSessionFromRequest, userStore } from "../../../../lib/auth-service";
 import { handleDatabaseError } from "../../../../lib/db-client";
 
 export async function GET(req: Request) {
-  const session = await getSessionFromRequest(req);
-  if (!session) {
-    return NextResponse.json(
-      {
-        authenticated: false,
-        user: null,
-      },
-      { status: 200 }
-    );
-  }
-
   try {
+    const session = await getSessionFromRequest(req);
+    if (!session) {
+      return NextResponse.json(
+        {
+          authenticated: false,
+          user: null,
+        },
+        { status: 200 }
+      );
+    }
     const user = await userStore.findById(session.userId);
     if (!user) {
       return NextResponse.json(

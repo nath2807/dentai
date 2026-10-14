@@ -73,7 +73,6 @@ export async function POST(req: Request) {
         "REGISTRATION_FAILED"
       );
     }
-    const message = err instanceof Error ? err.message : "Failed to register account.";
-    return safeErrorResponse(400, message, "REGISTRATION_FAILED");
+    return safeErrorResponse(400, "Failed to register account.", "REGISTRATION_FAILED");
   }
 }

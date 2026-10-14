@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ClinicalAnalysis } from "../../../lib/clinical-analysis";
 import { clinicalCaseSchema } from "../../../lib/clinical-case";
+import { evaluateRateLimit, getAnonymizedClientIdentifier, safeErrorResponse } from "../../../lib/security";
 
 export const defaultModel = "gemini-3.8-flash";
 export const maxDuration = 35;
@@ -98,6 +99,24 @@ function publicError(message: string, status: number) {
 }
 
 export async function POST(request: Request) {
+  const clientId = getAnonymizedClientIdentifier(request);
+  const rateLimit = await evaluateRateLimit(`analyze:${clientId}`, 15, 60);
+  if (!rateLimit.allowed) {
+    if (rateLimit.code === "RATE_LIMITER_UNCONFIGURED" || rateLimit.code === "RATE_LIMITER_UNAVAILABLE") {
+      return safeErrorResponse(
+        503,
+        "AI analysis service is temporarily unavailable. Distributed rate limiter configuration required.",
+        rateLimit.code
+      );
+    }
+    return safeErrorResponse(
+      429,
+      `Too many analysis requests. Please wait ${rateLimit.resetInSeconds} seconds before trying again.`,
+      "RATE_LIMITED",
+      { retryAfter: rateLimit.resetInSeconds }
+    );
+  }
+
   const model = process.env.GEMINI_MODEL || defaultModel;
   const hasGeminiKey = Boolean(process.env.GEMINI_API_KEY?.trim());
   const hasGoogleKey = Boolean(process.env.GOOGLE_API_KEY?.trim());

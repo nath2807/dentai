@@ -524,7 +524,17 @@ export class CloudRepository implements ICloudRepository {
               const newId = `case-migrated-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
               const created = await this.createCase(
                 userId,
-                { ...rawCase, id: newId, caseData: safeData },
+                {
+                  ...rawCase,
+                  id: newId,
+                  caseData: safeData,
+                  analysis: rawCase.analysis ?? null,
+                  status: rawCase.status ?? "draft",
+                  analysisStatus: rawCase.analysisStatus ?? "current",
+                  reviewStatus: rawCase.reviewStatus ?? "pending",
+                  createdAt: rawCase.createdAt ?? new Date().toISOString(),
+                  updatedAt: rawCase.updatedAt ?? new Date().toISOString(),
+                },
                 userEmail
               );
               importedCaseIds.push(created.id);
@@ -563,7 +573,17 @@ export class CloudRepository implements ICloudRepository {
             const newId = `case-migrated-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
             const created = await this.createCase(
               userId,
-              { ...rawCase, id: newId, caseData: safeData },
+              {
+                ...rawCase,
+                id: newId,
+                caseData: safeData,
+                analysis: rawCase.analysis ?? null,
+                status: rawCase.status ?? "draft",
+                analysisStatus: rawCase.analysisStatus ?? "current",
+                reviewStatus: rawCase.reviewStatus ?? "pending",
+                createdAt: rawCase.createdAt ?? new Date().toISOString(),
+                updatedAt: rawCase.updatedAt ?? new Date().toISOString(),
+              },
               userEmail
             );
             importedCaseIds.push(created.id);
@@ -572,7 +592,16 @@ export class CloudRepository implements ICloudRepository {
           // Brand new case
           const created = await this.createCase(
             userId,
-            { ...rawCase, caseData: safeData },
+            {
+              ...rawCase,
+              caseData: safeData,
+              analysis: rawCase.analysis ?? null,
+              status: rawCase.status ?? "draft",
+              analysisStatus: rawCase.analysisStatus ?? "current",
+              reviewStatus: rawCase.reviewStatus ?? "pending",
+              createdAt: rawCase.createdAt ?? new Date().toISOString(),
+              updatedAt: rawCase.updatedAt ?? new Date().toISOString(),
+            },
             userEmail
           );
           importedCaseIds.push(created.id);
