@@ -24,6 +24,10 @@ export async function POST(req: Request) {
       return safeErrorResponse(400, errorMsg, "VALIDATION_ERROR");
     }
 
+    if (parseResult.data.expectedUserId !== session.userId) {
+      return safeErrorResponse(409, "The clinician session changed. Retry in the current account.", "AUTH_CONTEXT_CHANGED");
+    }
+
     const result = await cloudRepository.migrateBatch(
       session.userId,
       session.email,
@@ -32,6 +36,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
+      userId: session.userId,
       ...result,
     });
   } catch (err: unknown) {

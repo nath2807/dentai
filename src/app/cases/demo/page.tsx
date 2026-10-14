@@ -16,10 +16,11 @@ import {
 import { BENCHMARK_CASES } from "@/lib/benchmark-cases";
 import { type StoredCase, saveCase } from "@/lib/case-storage";
 import { formatToothWithSystem } from "@/lib/tooth-numbering";
+import { workspaceStorageKey } from "@/lib/browser-workspace";
 
-const analysisKey = "dentai-clinical-analysis";
 
 export default function DemoResultsPage() {
+  const analysisKey = workspaceStorageKey("analysis");
   const [selectedBenchmarkIndex, setSelectedBenchmarkIndex] = useState<number>(0);
   const [sessionCase, setSessionCase] = useState<ClinicalAnalysisType | null>(null);
   const [useSessionCase, setUseSessionCase] = useState<boolean>(false);
@@ -42,7 +43,7 @@ export default function DemoResultsPage() {
       setIsLoading(false);
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [analysisKey]);
 
   const activeBenchmark: StoredCase = BENCHMARK_CASES[selectedBenchmarkIndex] || BENCHMARK_CASES[0];
   const activeAnalysis: ClinicalAnalysisType | null = useSessionCase

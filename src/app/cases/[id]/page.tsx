@@ -14,6 +14,7 @@ import {
 import type { ClinicalAnalysis, EvidenceMapItem } from "@/lib/clinical-analysis";
 import { ClinicianReviewTrace } from "@/components/clinician-review-trace";
 import { PeriodontalChart } from "@/components/periodontal-chart";
+import { assertWorkspaceCurrent, getWorkspaceUserId } from "@/lib/browser-workspace";
 
 export default function CaseDetailPage(props: {
   params: Promise<{ id: string }>;
@@ -59,6 +60,7 @@ function CaseDetailContent({
 
   async function handleReanalyze() {
     if (!storedCase) return;
+    const workspaceUserId = getWorkspaceUserId();
     setIsReanalyzing(true);
     setReanalyzeError("");
 
@@ -77,6 +79,7 @@ function CaseDetailContent({
       });
 
       const payload = (await response.json()) as ClinicalAnalysis | { error?: string };
+      assertWorkspaceCurrent(workspaceUserId);
       if (!response.ok) {
         throw new Error(
           "error" in payload && payload.error

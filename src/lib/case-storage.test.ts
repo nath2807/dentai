@@ -18,6 +18,7 @@ import {
 } from "./case-storage";
 import type { ClinicalCase } from "./clinical-case";
 import type { ClinicalAnalysis } from "./clinical-analysis";
+import { workspaceStorageKey } from "./browser-workspace";
 
 const mockCaseData: ClinicalCase = {
   caseInformation: { caseId: "CASE-101", age: 34, sex: "Female" },
@@ -617,7 +618,7 @@ describe("case-storage repository", () => {
 
     it("recovers from quota exceeded errors by removing orphaned drafts", () => {
       // Set an orphaned draft
-      mockStorage.setItem("dentai-clinical-case-draft", JSON.stringify({ draft: true }));
+      mockStorage.setItem(workspaceStorageKey("draft"), JSON.stringify({ draft: true }));
 
       // Simulate quota error on first setItem call for cases key, then succeed after draft cleanup
       let calls = 0;
@@ -637,7 +638,7 @@ describe("case-storage repository", () => {
       });
 
       expect(saved.id).toBe("CASE-QUOTA-1");
-      expect(mockStorage.getItem("dentai-clinical-case-draft")).toBeNull();
+      expect(mockStorage.getItem(workspaceStorageKey("draft"))).toBeNull();
       expect(getCase("CASE-QUOTA-1")).not.toBeNull();
 
       // Restore original setItem

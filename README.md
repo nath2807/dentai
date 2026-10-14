@@ -9,11 +9,13 @@ Dentarith operates strictly as a **clinician-in-control support tool**, preservi
 ## 🏛️ Architecture & Core Principles
 
 1. **Clinician In Control (Non-Autonomous)**: Dentarith provides structured decision support, differential comparisons, and missing information alerts. It never initiates treatment, issues autonomous prescriptions, or replaces the licensed clinician's professional judgment.
-2. **Privacy-Conscious Local-First Storage**: Clinical findings, differential analyses, clinician review decision traces, and report drafts are persisted in the user's browser local storage. No patient information is sent to or stored in external cloud databases.
+2. **Local-First Storage with Optional Cloud Operations**: Clinical cases and report data are saved in browser local storage. Settings also provides authenticated PostgreSQL cloud sync and local-to-cloud case import. Clinical text is sent to Gemini for analysis. Use synthetic/de-identified cases; cloud sync and account isolation have unresolved defects listed in the engineering audit.
 3. **Radiograph Client-Side Isolation**: Uploaded radiograph images remain strictly in local browser memory and session storage. Image payloads are explicitly stripped (`radiograph: null`) before sending clinical text to the AI reasoning engine to prevent unverified visual hallucinations.
 4. **Dual Tooth-Numbering Architecture**: Seamless bidirectional support for both the **Universal Numbering System** (USA: #1–32) and the **FDI World Dental Federation Two-Digit Notation** (ISO 3950: 11–48), complete with an interactive dental arch selector and anatomical metadata mapping.
 5. **Strict Schema & Type Safety**: Strict validation on case inputs (`clinicalCaseSchema`), AI reasoning responses (`ClinicalAnalysis`), and backup bundles using Zod schemas. Invalid or incomplete model responses are rejected with recoverable errors.
-6. **Resilient AI Pipeline**: Server-side credentials via `@google/genai` (defaulting to `gemini-3.8-flash`), AbortSignal timeout handling (28s), exponential backoff retries for transient upstream rate limits (429) or service outages (503), and zero credential leakage.
+6. **AI Pipeline**: Server-side credentials via `@google/genai` (defaulting to `gemini-3.8-flash`), AbortSignal timeout handling (28s), and retries for transient upstream rate limits (429) or service outages (503). Production access controls and error/log sanitization need further verification.
+
+See [the engineering audit and prioritized backlog](docs/ENGINEERING_AUDIT.md) for verified development status and production blockers, and [AGENTS.md](AGENTS.md) for development safeguards. Implemented features are not a claim of clinical validation or production readiness.
 
 ---
 
@@ -61,7 +63,7 @@ Dental clinicians work across different numbering conventions. Dentarith provide
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ or 20+
+- Node.js 20.9 or newer (minimum required by the installed Next.js version)
 - Google Gemini API key (`GEMINI_API_KEY` or `GOOGLE_API_KEY`)
 
 ### Installation & Local Setup
@@ -82,6 +84,13 @@ Dental clinicians work across different numbering conventions. Dentarith provide
    # GEMINI_MODEL=gemini-3.8-flash
    ```
 
+   Production authentication/cloud operations additionally require `DATABASE_URL`,
+   `AUTH_SECRET` (at least 32 characters), `UPSTASH_REDIS_REST_URL`, and
+   `UPSTASH_REDIS_REST_TOKEN`. `NEXTAUTH_SECRET` is a supported secret alias.
+   Keep `ENABLE_DEMO_ACCOUNTS` disabled in production. Configure SQL schema
+   through a reviewed migration plan; this project has no migration CLI yet.
+   `/api/cloud/migrate` imports cases and does not migrate the SQL schema.
+
 3. **Start the development server**:
    ```bash
    npm run dev
@@ -98,19 +107,22 @@ Dentarith maintains a comprehensive automated testing and validation suite:
   ```bash
   npm test
   ```
-  Runs 77+ unit and integration tests across 8 test suites covering tooth numbering, case storage, Zod schemas, review traces, API timeouts, error sanitization, and end-to-end workflows.
+  At the latest 2026-10-13 verification: 204 tests passed across 17 suites. The default configuration clears inherited service credentials and excludes live PostgreSQL tests. Persistent stores reject bulk clearing. Do not load `.env.local` into tests or bypass the isolation. Workflow library tests do not establish browser end-to-end coverage.
+
+- **Run explicit disposable PostgreSQL integration checks**:
+  Follow [the local test database instructions](docs/POSTGRES_TESTING.md), then run `npm run test:postgres`. This separate command requires explicit opt-in and a local `TEST_DATABASE_URL`; it never falls back to the application database. Six live checks are implemented but have not yet been executed successfully against PostgreSQL in this workspace.
 
 - **Run linter**:
   ```bash
   npm run lint
   ```
-  Enforces zero ESLint warnings and zero errors across the entire codebase.
+  Reports ESLint errors and warnings across the codebase.
 
 - **Run production build**:
   ```bash
   npm run build
   ```
-  Validates Next.js 16 compilation, Turbopack bundling, TypeScript type-checking, and static/partial prerendering for all 14 routes.
+  Validates Next.js compilation, Turbopack bundling, TypeScript type-checking, and static/partial prerendering. A successful build does not verify live database, authentication, AI, or browser behavior.
 
 ---
 
@@ -126,8 +138,8 @@ Dentarith maintains a comprehensive automated testing and validation suite:
 
 ## 📦 Production Deployment
 
-Dentarith is built for zero-config deployment on Vercel, Google Cloud Run, AWS Amplify, or any Node.js container runtime:
+Dentarith builds as a Next.js Node.js application. Deployment requires reviewed configuration and validation:
 
-1. Ensure environment variables are configured in the hosting environment (`GEMINI_API_KEY`).
+1. Review production blockers in the engineering audit and configure the required hosting variables listed above. Never deploy or run production database migrations without explicit approval.
 2. Run standard build step: `npm run build`.
 3. Start production server: `npm start`.

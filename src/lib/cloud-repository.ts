@@ -64,7 +64,8 @@ export interface ICloudRepository {
   deleteCase(
     userId: string,
     caseId: string,
-    userEmail?: string
+    userEmail?: string,
+    expectedVersion?: number
   ): Promise<{ success: boolean; version: number }>;
   syncBatch(
     userId: string,
@@ -338,11 +339,16 @@ export class CloudRepository implements ICloudRepository {
   async deleteCase(
     userId: string,
     caseId: string,
-    userEmail?: string
+    userEmail?: string,
+    expectedVersion?: number
   ): Promise<{ success: boolean; version: number }> {
     const existing = this.cases.get(caseId);
     if (!existing || existing.userId !== userId || existing.deletedAt) {
       throw new NotFoundError(`Case ${caseId} not found.`);
+    }
+
+    if (expectedVersion !== undefined && expectedVersion !== existing.version) {
+      throw new ConcurrencyError(caseId, existing.version, expectedVersion);
     }
 
     const nextVersion = existing.version + 1;
@@ -378,7 +384,11 @@ export class CloudRepository implements ICloudRepository {
 
         if (push.deleted) {
           if (existing && existing.userId === userId && !existing.deletedAt) {
-            const delRes = await this.deleteCase(userId, push.id, userEmail);
+            if (push.version !== existing.version) {
+              results.push({ caseId: push.id, status: "conflict", serverVersion: existing.version, serverCase: existing });
+              continue;
+            }
+            const delRes = await this.deleteCase(userId, push.id, userEmail, push.version);
             results.push({
               caseId: push.id,
               status: "updated",
@@ -424,7 +434,7 @@ export class CloudRepository implements ICloudRepository {
         } else {
           // Existing case for this user
           const clientVersion = push.version || 0;
-          if (clientVersion < existing.version) {
+          if (existing.deletedAt || clientVersion !== existing.version) {
             // Server has newer updates -> conflict!
             results.push({
               caseId: push.id,
@@ -448,7 +458,7 @@ export class CloudRepository implements ICloudRepository {
                 review: push.review,
                 updatedAt: push.updatedAt,
               },
-              existing.version,
+              push.version,
               userEmail
             );
             results.push({
@@ -463,7 +473,7 @@ export class CloudRepository implements ICloudRepository {
         results.push({
           caseId: push.id,
           status: "error",
-          error: err instanceof Error ? err.message : "Sync push failed.",
+          error: err instanceof ConcurrencyError ? "The case changed during synchronization. Please review both copies." : "The case could not be synchronized. Please retry.",
         });
       }
     }
@@ -475,6 +485,7 @@ export class CloudRepository implements ICloudRepository {
     });
 
     return {
+      userId,
       results,
       pulledCases,
       serverTime: new Date().toISOString(),

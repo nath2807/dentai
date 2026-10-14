@@ -2,6 +2,8 @@ import type { ClinicalCase } from "./clinical-case";
 import type { ClinicalAnalysis } from "./clinical-analysis";
 import { periodontalChartSchema } from "./periodontal-types";
 import { BENCHMARK_CASES } from "./benchmark-cases";
+import type { CloudCaseRecord } from "./cloud-types";
+import { assertWorkspaceCurrent, getWorkspaceUserId, notifyWorkspaceChanged, workspaceStorageKey } from "./browser-workspace";
 export { BENCHMARK_CASES };
 
 export type CaseStatus = "draft" | "analyzed" | "reviewed";
@@ -36,12 +38,118 @@ export interface StoredCase {
   analysisStatus: AnalysisStatus;
   reviewStatus: ReviewStatus;
   review?: ClinicalReview | null;
+  sync?: { serverVersion: number; dirty: boolean; revision: string; conflict?: CloudCaseRecord };
+  deletedAt?: string | null;
 }
 
-export const CASES_STORAGE_KEY = "dentai-clinical-cases";
+export const LEGACY_CASES_STORAGE_KEY = "dentai-clinical-cases";
+export const CASES_STORAGE_KEY = workspaceStorageKey("cases", null);
 
 function isBrowser(): boolean {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+export function getWorkspaceRecords(userId = getWorkspaceUserId()): StoredCase[] {
+  if (!isBrowser()) return [];
+  return parseCasesSafely(window.localStorage.getItem(workspaceStorageKey("cases", userId)));
+}
+
+function writeWorkspaceRecords(records: StoredCase[], userId = getWorkspaceUserId()): void {
+  if (!isBrowser()) return;
+  assertWorkspaceCurrent(userId);
+  window.localStorage.setItem(workspaceStorageKey("cases", userId), JSON.stringify(records));
+  notifyWorkspaceChanged();
+}
+
+/** Legacy data is preserved, never assigned or uploaded during login. */
+export function getUnassignedCases(): StoredCase[] {
+  if (!isBrowser()) return [];
+  return [
+    ...parseCasesSafely(window.localStorage.getItem(LEGACY_CASES_STORAGE_KEY)),
+    ...getWorkspaceRecords(null),
+  ].filter((c) => !c.deletedAt);
+}
+
+/** Keep the local clinical copy and persist the server alternative for review. */
+export function retainSyncConflict(userId: string, serverCase: CloudCaseRecord): void {
+  if (serverCase.userId !== userId) throw new Error("Unexpected cloud record owner.");
+  const records = getWorkspaceRecords(userId);
+  const current = records.find((c) => c.id === serverCase.id);
+  if (!current) return;
+  current.sync = {
+    serverVersion: current.sync?.serverVersion ?? 0,
+    dirty: true,
+    revision: current.sync?.revision ?? crypto.randomUUID(),
+    conflict: { ...serverCase, caseData: sanitizeCaseForStorage(serverCase.caseData) },
+  };
+  writeWorkspaceRecords(records, userId);
+}
+
+/** Apply a cloud copy only to a clean record or an unchanged acknowledged revision. */
+export function applySyncedCase(userId: string, serverCase: CloudCaseRecord, acknowledgedRevision?: string, localId = serverCase.id): void {
+  assertWorkspaceCurrent(userId);
+  if (serverCase.userId !== userId) throw new Error("Unexpected cloud record owner.");
+  const records = getWorkspaceRecords(userId);
+  const index = records.findIndex((c) => c.id === localId);
+  const current = records[index];
+  if (localId !== serverCase.id && records.some((c, i) => i !== index && c.id === serverCase.id)) {
+    throw new Error("A cloud case identifier conflicts with an existing local record. Both copies are retained.");
+  }
+  if (current && serverCase.version < (current.sync?.serverVersion ?? 0)) return;
+  if (current && current.sync?.dirty !== false) {
+    if (acknowledgedRevision && current.sync?.revision !== acknowledgedRevision) {
+      // An edit/deletion happened during the request. Keep it pending against the
+      // version just committed; a later sync sends that newer local revision.
+      current.id = serverCase.id;
+      current.sync = { ...current.sync!, serverVersion: serverCase.version };
+      writeWorkspaceRecords(records, userId);
+      return;
+    }
+    if (!acknowledgedRevision && !sameClinicalContent(current, serverCase)) {
+      if (serverCase.version > (current.sync?.serverVersion ?? 0)) retainSyncConflict(userId, serverCase);
+      return;
+    }
+  }
+  // A removed local snapshot must not be resurrected by a late acknowledgement.
+  if (!current && acknowledgedRevision) return;
+  const { userId: _owner, version, syncedAt: _syncedAt, ...record } = serverCase;
+  void _owner; void _syncedAt;
+  const stored: StoredCase = {
+    ...record,
+    caseData: sanitizeCaseForStorage(record.caseData),
+    sync: { serverVersion: version, dirty: false, revision: crypto.randomUUID() },
+  };
+  if (index >= 0) records[index] = stored;
+  else records.push(stored);
+  writeWorkspaceRecords(records, userId);
+}
+
+function sameClinicalContent(a: StoredCase, b: StoredCase): boolean {
+  const content = (c: StoredCase) => ({
+    caseData: sanitizeCaseForStorage(c.caseData), formValues: c.formValues ?? null,
+    analysis: c.analysis ?? null, status: c.status, analysisStatus: c.analysisStatus,
+    reviewStatus: c.reviewStatus, review: c.review ?? null, deleted: Boolean(c.deletedAt),
+  });
+  const canonical = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(canonical);
+    if (value && typeof value === "object") return Object.fromEntries(
+      Object.entries(value).filter(([, v]) => v !== undefined).sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, v]) => [key, canonical(v)])
+    );
+    return value;
+  };
+  return JSON.stringify(canonical(content(a))) === JSON.stringify(canonical(content(b)));
+}
+
+export function acknowledgeDeletedCase(userId: string, id: string, revision: string, version: number): void {
+  const records = getWorkspaceRecords(userId);
+  const current = records.find((c) => c.id === id);
+  if (!current) return;
+  current.sync = {
+    ...current.sync!, serverVersion: Math.max(version, current.sync?.serverVersion ?? 0),
+    dirty: current.sync?.revision !== revision || !current.deletedAt,
+  };
+  writeWorkspaceRecords(records, userId);
 }
 
 /**
@@ -105,9 +213,9 @@ export function parseCasesSafely(rawJson: string | null): StoredCase[] {
 export function getCases(): StoredCase[] {
   if (!isBrowser()) return [];
   try {
-    const raw = window.localStorage.getItem(CASES_STORAGE_KEY);
+    const raw = window.localStorage.getItem(workspaceStorageKey("cases"));
     const cases = parseCasesSafely(raw);
-    return cases.sort((a, b) => {
+    return cases.filter((c) => !c.deletedAt).sort((a, b) => {
       const timeA = new Date(a.updatedAt || a.createdAt).getTime() || 0;
       const timeB = new Date(b.updatedAt || b.createdAt).getTime() || 0;
       return timeB - timeA;
@@ -150,7 +258,7 @@ export function saveCase(
   }
 ): StoredCase {
   const now = new Date().toISOString();
-  const cases = getCases();
+  const cases = getWorkspaceRecords();
   const existingIndex = cases.findIndex(
     (c) => c.id.toLowerCase() === record.id.trim().toLowerCase()
   );
@@ -204,6 +312,13 @@ export function saveCase(
           status: reviewStatus,
         }
       : undefined,
+    deletedAt: null,
+    sync: {
+      serverVersion: existingIndex >= 0 ? cases[existingIndex].sync?.serverVersion ?? 0 : 0,
+      dirty: true,
+      revision: crypto.randomUUID(),
+      conflict: existingIndex >= 0 ? cases[existingIndex].sync?.conflict : undefined,
+    },
   };
 
   if (existingIndex >= 0) {
@@ -214,13 +329,13 @@ export function saveCase(
 
   if (isBrowser()) {
     try {
-      window.localStorage.setItem(CASES_STORAGE_KEY, JSON.stringify(cases));
+      writeWorkspaceRecords(cases);
     } catch (error) {
       console.error("[Dentarith] Failed to write case to localStorage:", error);
       // Attempt quota recovery: clear temporary drafts to reclaim space
       try {
-        window.localStorage.removeItem("dentai-clinical-case-draft");
-        window.localStorage.setItem(CASES_STORAGE_KEY, JSON.stringify(cases));
+        window.localStorage.removeItem(workspaceStorageKey("draft"));
+        writeWorkspaceRecords(cases);
       } catch {
         throw new Error(
           "Browser storage quota exceeded. Please export a backup from Settings and remove older cases to free storage space."
@@ -328,14 +443,22 @@ export function reviewCase(
 export function deleteCase(caseId: string): boolean {
   if (!isBrowser() || !caseId) return false;
   try {
-    const cases = getCases();
+    const cases = getWorkspaceRecords();
+    const existing = cases.find((c) => c.id.toLowerCase() === caseId.trim().toLowerCase() && !c.deletedAt);
+    if (!existing) return false;
     const filtered = cases.filter(
       (c) => c.id.toLowerCase() !== caseId.trim().toLowerCase()
     );
     if (filtered.length === cases.length) {
       return false; // nothing deleted
     }
-    window.localStorage.setItem(CASES_STORAGE_KEY, JSON.stringify(filtered));
+    if (getWorkspaceUserId() !== null) {
+      filtered.push({ ...existing, deletedAt: new Date().toISOString(), sync: {
+        serverVersion: existing.sync?.serverVersion ?? 0, dirty: true, revision: crypto.randomUUID(),
+        conflict: existing.sync?.conflict,
+      } });
+    }
+    writeWorkspaceRecords(filtered);
     return true;
   } catch (error) {
     console.error("[Dentarith] Failed to delete case:", error);
@@ -349,7 +472,9 @@ export function deleteCase(caseId: string): boolean {
 export function clearCases(): void {
   if (!isBrowser()) return;
   try {
-    window.localStorage.removeItem(CASES_STORAGE_KEY);
+    window.localStorage.removeItem(workspaceStorageKey("cases"));
+    window.localStorage.removeItem(workspaceStorageKey("last-sync"));
+    notifyWorkspaceChanged();
   } catch (error) {
     console.error("[Dentarith] Failed to clear cases:", error);
   }
@@ -397,7 +522,7 @@ export function getStorageStats(): StorageStats {
     };
   }
   const cases = getCases();
-  const raw = window.localStorage.getItem(CASES_STORAGE_KEY) || "";
+  const raw = window.localStorage.getItem(workspaceStorageKey("cases")) || "";
   const estimatedBytes = raw.length * 2; // UTF-16 representation
   const analyzedCount = cases.filter((c) => Boolean(c.analysis)).length;
   const reviewedCount = cases.filter(
@@ -447,6 +572,10 @@ export function exportCases(caseIds?: string[]): string {
       ? allCases.filter((c) => caseIds.includes(c.id))
       : allCases;
 
+  return exportCaseRecords(selected);
+}
+
+export function exportCaseRecords(selected: StoredCase[]): string {
   const bundle: CaseExportBundle = {
     format: "dentarith-clinical-cases",
     version: "1.0",

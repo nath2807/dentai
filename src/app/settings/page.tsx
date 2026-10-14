@@ -7,6 +7,7 @@ import {
   clearCases,
   exportCases,
   getStorageStats,
+  getUnassignedCases,
   importCasesSafely,
   seedBenchmarkCases,
   type StorageStats,
@@ -31,6 +32,7 @@ export default function SettingsPage() {
 
   // Sprint 4 Cloud & Sync State
   const [syncState, setSyncState] = useState<SyncClientState>({
+    sessionReady: false,
     status: "local_only",
     lastSyncedAt: null,
     pendingChanges: 0,
@@ -52,6 +54,8 @@ export default function SettingsPage() {
   // Migration Wizard State
   const [migrationConsent, setMigrationConsent] = useState(false);
   const [migrationStrategy, setMigrationStrategy] = useState<MigrationStrategy>("skip_existing");
+  const [migrationSource, setMigrationSource] = useState<"workspace" | "unassigned">("workspace");
+  const migrationCaseCount = migrationSource === "unassigned" ? getUnassignedCases().length : stats.caseCount;
   const [isMigrating, setIsMigrating] = useState(false);
 
   // Audit Log State
@@ -122,8 +126,12 @@ export default function SettingsPage() {
 
   async function handleLogout() {
     const client = getCloudSyncClient();
-    await client.logout();
-    setFeedbackMessage("You have been signed out. Switched to local browser mode.");
+    try {
+      await client.logout();
+      setFeedbackMessage("You have been signed out. Switched to local browser mode.");
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Server sign-out failed.");
+    }
     setAuditEvents([]);
   }
 
@@ -132,13 +140,14 @@ export default function SettingsPage() {
     setErrorMessage("");
     const client = getCloudSyncClient();
     const res = await client.sync();
-    if (res) {
+    if (res && client.getState().status === "synced") {
       setFeedbackMessage(
         `Cloud sync complete. Processed ${res.results.length} cases; pulled ${res.pulledCases.length} updates.`
       );
       refreshStats();
     } else {
-      setErrorMessage(syncState.errorMessage || "Synchronization could not be completed.");
+      setErrorMessage(client.getState().errorMessage || "Some changes remain pending.");
+      refreshStats();
     }
   }
 
@@ -154,7 +163,7 @@ export default function SettingsPage() {
 
     try {
       const client = getCloudSyncClient();
-      const result = await client.migrateLocalCases(migrationStrategy, true);
+      const result = await client.migrateLocalCases(migrationStrategy, true, migrationSource);
       setFeedbackMessage(
         `Migration successful: ${result.importedCount} cases uploaded, ${result.skippedCount} skipped, ${result.failedCount} failed.`
       );
@@ -619,7 +628,7 @@ export default function SettingsPage() {
                 <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-950">
                   <p className="font-bold">⚠️ Concurrency Conflict Detected</p>
                   <p className="mt-1 text-[11px]">
-                    {syncState.conflictCases.length} case(s) were modified concurrently on another device. Server version retained to prevent silent overwrite.
+                    {syncState.conflictCases.length} case(s) need review. Your local edits and the server copies are both retained; neither is silently overwritten.
                   </p>
                 </div>
               )}
@@ -654,8 +663,18 @@ export default function SettingsPage() {
               </div>
 
               <p className="text-xs leading-5 text-slate-500">
-                Migrate locally saved cases to your cloud account. An automated offline JSON backup is downloaded to your machine prior to migration to ensure recovery safety.
+                Import cases into this account only with your authority and consent. Unassigned cases remain separate until you choose to import them. A recovery download is initiated before transmission; keep that file safely.
               </p>
+
+              <div>
+                <label htmlFor="migration-source" className="mb-1 block text-xs font-semibold text-slate-600">Import source</label>
+                <select id="migration-source" value={migrationSource}
+                  onChange={(e) => { setMigrationSource(e.target.value as "workspace" | "unassigned"); setMigrationConsent(false); }}
+                  className="w-full rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-800">
+                  <option value="workspace">Current account workspace</option>
+                  <option value="unassigned">Preserved unassigned browser cases</option>
+                </select>
+              </div>
 
               <div>
                 <label className="block text-[11px] font-bold uppercase text-slate-600 mb-1">
@@ -687,7 +706,7 @@ export default function SettingsPage() {
 
             <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-between">
               <span className="text-[11px] text-slate-400">
-                {stats.caseCount} local {stats.caseCount === 1 ? "case" : "cases"} found
+                {migrationCaseCount} {migrationCaseCount === 1 ? "case" : "cases"} in selected source
               </span>
               <button
                 type="button"
@@ -695,7 +714,7 @@ export default function SettingsPage() {
                 disabled={
                   !syncState.isAuthenticated ||
                   !migrationConsent ||
-                  stats.caseCount === 0 ||
+                  migrationCaseCount === 0 ||
                   isMigrating
                 }
                 className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-indigo-700 px-4 text-xs font-semibold text-white transition hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed"

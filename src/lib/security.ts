@@ -142,20 +142,32 @@ export async function evaluateRateLimit(
           windowSeconds,
         ]),
         cache: "no-store",
+        signal: AbortSignal.timeout(3000),
       });
 
-      if (res.ok) {
-        const data = (await res.json()) as { result: number };
-        const currentCount = typeof data.result === "number" ? data.result : 1;
-        const allowed = currentCount <= limit;
-        return {
-          allowed,
-          remaining: Math.max(0, limit - currentCount),
-          resetInSeconds: windowSeconds,
-          isDistributed: true,
-          code: allowed ? undefined : "RATE_LIMITED",
-        };
+      if (!res.ok) {
+        throw new Error("Distributed rate limiter request failed.");
       }
+
+      const data: unknown = await res.json();
+      if (
+        typeof data !== "object" || data === null ||
+        !("result" in data) || "error" in data ||
+        typeof data.result !== "number" ||
+        !Number.isSafeInteger(data.result) || data.result < 1
+      ) {
+        throw new Error("Distributed rate limiter returned an invalid counter.");
+      }
+
+      const currentCount = data.result;
+      const allowed = currentCount <= limit;
+      return {
+        allowed,
+        remaining: Math.max(0, limit - currentCount),
+        resetInSeconds: windowSeconds,
+        isDistributed: true,
+        code: allowed ? undefined : "RATE_LIMITED",
+      };
     } catch {
       // Intentional production failure handling: fail closed if Redis is down
       if (isProduction) {

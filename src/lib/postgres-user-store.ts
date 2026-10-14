@@ -5,7 +5,7 @@
 import crypto from "crypto";
 import { type RegisterRequest, type UserProfile, type UserRecord } from "./auth-types";
 import { hashPassword } from "./auth-service";
-import { query, withTransaction, isDatabaseConfigured } from "./db-client";
+import { query, isDatabaseConfigured } from "./db-client";
 
 export interface IUserStore {
   findByEmail(email: string): Promise<UserRecord | null>;
@@ -15,8 +15,10 @@ export interface IUserStore {
 }
 
 export class PostgresUserStore implements IUserStore {
-  constructor() {
-    this.seedDefaultUsers();
+  constructor(options: { seedDemo?: boolean } = {}) {
+    if (options.seedDemo !== false) {
+      void this.seedDefaultUsers();
+    }
   }
 
   private async seedDefaultUsers(): Promise<void> {
@@ -183,10 +185,6 @@ export class PostgresUserStore implements IUserStore {
   }
 
   async clear(): Promise<void> {
-    if (!isDatabaseConfigured()) return;
-    await withTransaction(async (client) => {
-      await client.query("DELETE FROM users");
-    });
-    await this.seedDefaultUsers();
+    throw new Error("Bulk clearing PostgreSQL users is disabled. Use an isolated disposable test database.");
   }
 }

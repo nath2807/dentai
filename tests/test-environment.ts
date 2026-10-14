@@ -1,0 +1,21 @@
+// Default tests must not inherit application or external-service credentials.
+export const isolatedTestEnvironment = {
+  NODE_ENV: "test",
+  DATABASE_URL: "",
+  TEST_DATABASE_URL: "",
+  RUN_POSTGRES_INTEGRATION_TESTS: "",
+  UPSTASH_REDIS_REST_URL: "",
+  UPSTASH_REDIS_REST_TOKEN: "",
+  GEMINI_API_KEY: "",
+  GOOGLE_API_KEY: "",
+  AUTH_SECRET: "",
+  NEXTAUTH_SECRET: "",
+  ENABLE_DEMO_ACCOUNTS: "false",
+  PGHOST: "",
+  PGPORT: "5432",
+  PGDATABASE: "",
+  PGUSER: "",
+  PGPASSWORD: "",
+  PGOPTIONS: "",
+  PGSSLMODE: "disable",
+} as const;

@@ -19,6 +19,10 @@ export async function POST(req: Request) {
       return safeErrorResponse(400, errorMsg, "VALIDATION_ERROR");
     }
 
+    if (parseResult.data.expectedUserId !== session.userId) {
+      return safeErrorResponse(409, "The clinician session changed. Retry in the current account.", "AUTH_CONTEXT_CHANGED");
+    }
+
     const syncResult = await cloudRepository.syncBatch(
       session.userId,
       parseResult.data,

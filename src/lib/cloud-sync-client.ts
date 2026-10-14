@@ -1,19 +1,12 @@
-import type { UserProfile, LoginRequest, RegisterRequest } from "./auth-types";
-import type {
-  CloudCaseRecord,
-  CloudSyncStatus,
-  MigrationResult,
-  MigrationStrategy,
-  SyncBatchResponse,
-  SyncPushItem,
-} from "./cloud-types";
-import {
-  getCases,
-  saveCase,
-  exportCases,
-} from "./case-storage";
+import { userProfileSchema, type UserProfile, type LoginRequest, type RegisterRequest } from "./auth-types";
+import { migrationResponseSchema, syncBatchResponseSchema, type CloudCaseRecord, type CloudSyncStatus,
+  type MigrationResult, type MigrationStrategy, type SyncBatchResponse, type SyncPushItem } from "./cloud-types";
+import { acknowledgeDeletedCase, applySyncedCase, exportCaseRecords, getCases, getUnassignedCases,
+  getWorkspaceRecords, retainSyncConflict, type StoredCase } from "./case-storage";
+import { assertWorkspaceCurrent, getWorkspaceUserId, setWorkspaceUserId, subscribeWorkspace, workspaceStorageKey } from "./browser-workspace";
 
 export interface SyncClientState {
+  sessionReady: boolean;
   status: CloudSyncStatus;
   lastSyncedAt: string | null;
   pendingChanges: number;
@@ -23,367 +16,251 @@ export interface SyncClientState {
   conflictCases: { localId: string; serverCase: CloudCaseRecord }[];
 }
 
-const STORAGE_LAST_SYNC_KEY = "dentarith_last_sync_timestamp";
+const initialState = (): SyncClientState => ({
+  sessionReady: false, status: "local_only", lastSyncedAt: null, pendingChanges: 0,
+  errorMessage: null, isAuthenticated: false, currentUser: null, conflictCases: [],
+});
 
-class CloudSyncClient {
-  private state: SyncClientState = {
-    status: "local_only",
-    lastSyncedAt: null,
-    pendingChanges: 0,
-    errorMessage: null,
-    isAuthenticated: false,
-    currentUser: null,
-    conflictCases: [],
-  };
-
+export class CloudSyncClient {
+  private state = initialState();
   private listeners = new Set<(state: SyncClientState) => void>();
+  private generation = 0;
   private isSyncing = false;
 
-  constructor() {
-    if (typeof window !== "undefined") {
-      this.state.lastSyncedAt = localStorage.getItem(STORAGE_LAST_SYNC_KEY);
-      this.checkSession();
-    }
+  constructor(options: { autoCheckSession?: boolean } = {}) {
+    subscribeWorkspace(() => this.notify());
+    if (typeof window !== "undefined" && options.autoCheckSession !== false) void this.checkSession();
   }
 
   public getState(): SyncClientState {
-    return { ...this.state };
+    if (!this.state.currentUser || getWorkspaceUserId() !== this.state.currentUser.id) return { ...this.state };
+    try {
+      const records = getWorkspaceRecords(this.state.currentUser.id);
+      const conflictCases = records.filter((c) => c.sync?.conflict).map((c) => ({ localId: c.id, serverCase: c.sync!.conflict! }));
+      const pendingChanges = records.filter((c) => c.sync?.dirty !== false).length;
+      return { ...this.state, pendingChanges, conflictCases,
+        lastSyncedAt: window.localStorage.getItem(workspaceStorageKey("last-sync")),
+        status: this.state.status === "syncing" || this.state.status === "error" ? this.state.status
+          : conflictCases.length ? "conflict" : pendingChanges ? "local_only" : this.state.status,
+      };
+    } catch {
+      return { ...this.state, status: "error", errorMessage: "Browser storage is unavailable. Changes have not been synchronized." };
+    }
   }
 
   public subscribe(listener: (state: SyncClientState) => void): () => void {
-    this.listeners.add(listener);
-    listener(this.getState());
-    return () => {
-      this.listeners.delete(listener);
-    };
+    this.listeners.add(listener); listener(this.getState());
+    return () => this.listeners.delete(listener);
   }
-
   private notify() {
-    const currentState = this.getState();
     for (const listener of this.listeners) {
-      try {
-        listener(currentState);
-      } catch (err) {
-        console.error("Error in sync listener:", err);
-      }
+      try { listener(this.getState()); } catch { /* Observers do not control synchronization. */ }
     }
   }
+  private updateState(updates: Partial<SyncClientState>) { this.state = { ...this.state, ...updates }; this.notify(); }
 
-  private updateState(partial: Partial<SyncClientState>) {
-    this.state = { ...this.state, ...partial };
+  private beginSessionChange(): number {
+    this.generation++;
+    this.state = initialState();
+    // Keep the previous scope while pages are hidden for verification. Background
+    // work can only finish in that same scope, never in the next account's cache.
+    this.notify();
+    return this.generation;
+  }
+  private activate(user: UserProfile | null) {
+    this.state = { ...initialState(), sessionReady: true, currentUser: user, isAuthenticated: Boolean(user) };
+    setWorkspaceUserId(user?.id ?? null);
     this.notify();
   }
+  private assertCurrent(userId: string, generation: number) {
+    if (this.generation !== generation || this.state.currentUser?.id !== userId || !this.state.isAuthenticated)
+      throw new Error("The clinician session changed. Retry synchronization in the current account.");
+    assertWorkspaceCurrent(userId);
+  }
 
-  /**
-   * Check if current session cookie is valid.
-   */
   public async checkSession(): Promise<{ authenticated: boolean; user: UserProfile | null }> {
+    const previousUserId = getWorkspaceUserId();
+    const generation = this.beginSessionChange();
     try {
-      const res = await fetch("/api/auth/me", {
-        method: "GET",
-        headers: { "Cache-Control": "no-cache" },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.authenticated && data.user) {
-          this.updateState({
-            isAuthenticated: true,
-            currentUser: data.user,
-            status: this.state.lastSyncedAt ? "synced" : "local_only",
-            errorMessage: null,
-          });
-          return { authenticated: true, user: data.user };
-        }
-      }
-    } catch (err) {
-      console.warn("Could not verify session:", err);
-    }
-
-    this.updateState({
-      isAuthenticated: false,
-      currentUser: null,
-      status: "local_only",
-    });
-    return { authenticated: false, user: null };
-  }
-
-  /**
-   * Log into clinician account.
-   */
-  public async login(
-    req: LoginRequest
-  ): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req),
-      });
-
+      const res = await fetch("/api/auth/me", { cache: "no-store", signal: AbortSignal.timeout(10000) });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        const errorMsg = data.error?.message || "Invalid email or password.";
-        this.updateState({ errorMessage: errorMsg });
-        return { success: false, error: errorMsg };
+      if (generation !== this.generation) return { authenticated: false, user: null };
+      const user = res.ok && data.authenticated ? userProfileSchema.parse(data.user) : null;
+      this.activate(user);
+      return { authenticated: Boolean(user), user };
+    } catch {
+      if (generation === this.generation) {
+        if (previousUserId === null) this.activate(null);
+        else this.updateState({ errorMessage: "Session verification is unavailable. Account data stays hidden; retry to reopen it." });
       }
-
-      this.updateState({
-        isAuthenticated: true,
-        currentUser: data.user,
-        status: "synced",
-        errorMessage: null,
-      });
-
-      return { success: true, user: data.user };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Network error during login.";
-      this.updateState({ errorMessage: msg });
-      return { success: false, error: msg };
+      return { authenticated: false, user: null };
     }
   }
 
-  /**
-   * Register a new clinician account.
-   */
-  public async register(
-    req: RegisterRequest
-  ): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
+  private async authenticate(path: string, req: LoginRequest | RegisterRequest): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
+    const generation = this.beginSessionChange();
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(req),
-      });
-
+      const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(req) });
       const data = await res.json();
-      if (!res.ok || !data.success) {
-        const errorMsg = data.error?.message || "Registration failed.";
-        this.updateState({ errorMessage: errorMsg });
-        return { success: false, error: errorMsg };
-      }
-
-      this.updateState({
-        isAuthenticated: true,
-        currentUser: data.user,
-        status: "synced",
-        errorMessage: null,
-      });
-
-      return { success: true, user: data.user };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Network error during registration.";
-      this.updateState({ errorMessage: msg });
-      return { success: false, error: msg };
+      if (generation !== this.generation) throw new Error("A newer session action has replaced this request.");
+      if (!res.ok || !data.success) throw new Error("Authentication could not be completed. Please check your details and try again.");
+      const user = userProfileSchema.parse(data.user);
+      this.activate(user);
+      return { success: true, user };
+    } catch {
+      const message = "Authentication could not be completed. Please check your details and try again.";
+      if (generation === this.generation) { this.activate(null); this.updateState({ errorMessage: message }); }
+      return { success: false, error: message };
     }
   }
+  public login(req: LoginRequest) { return this.authenticate("/api/auth/login", req); }
+  public register(req: RegisterRequest) { return this.authenticate("/api/auth/register", req); }
 
-  /**
-   * Log out and clear local session state.
-   */
   public async logout(): Promise<void> {
+    const generation = this.beginSessionChange();
     try {
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch (err) {
-      console.warn("Logout request failed:", err);
-    } finally {
-      this.updateState({
-        isAuthenticated: false,
-        currentUser: null,
-        status: "local_only",
-        errorMessage: null,
-        conflictCases: [],
-      });
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Logout failed.");
+    } catch {
+      if (generation === this.generation) {
+        this.activate(null);
+        this.updateState({ errorMessage: "Account data is hidden, but server sign-out failed. Please retry sign-out." });
+      }
+      throw new Error("Server sign-out failed. Please retry.");
     }
+    if (generation === this.generation) this.activate(null);
   }
 
-  /**
-   * Execute multi-device batch sync: push local changes and pull remote updates.
-   */
-  public async sync(): Promise<SyncBatchResponse | null> {
-    if (!this.state.isAuthenticated) {
-      return null;
-    }
+  private async requestSync(userId: string, generation: number, pushes: SyncPushItem[]): Promise<SyncBatchResponse> {
+    this.assertCurrent(userId, generation);
+    const res = await fetch("/api/cloud/sync", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      // Full pulls intentionally avoid timestamp cursor gaps during concurrent commits.
+      body: JSON.stringify({ expectedUserId: userId, pushes }), signal: AbortSignal.timeout(30000),
+    });
+    this.assertCurrent(userId, generation);
+    if (!res.ok) throw new Error(`Cloud synchronization failed (HTTP ${res.status}). Pending changes are retained.`);
+    const parsed = syncBatchResponseSchema.safeParse(await res.json());
+    this.assertCurrent(userId, generation);
+    if (!parsed.success) throw new Error("Invalid cloud synchronization response. Pending changes are retained.");
+    const data = parsed.data;
+    if (data.userId !== userId || [...data.pulledCases, ...data.results.flatMap((r) => r.serverCase ? [r.serverCase] : [])].some((c) => c.userId !== userId))
+      throw new Error("Unexpected cloud record owner. No response data was applied.");
+    return data;
+  }
 
-    if (this.isSyncing) return null;
+  public async sync(): Promise<SyncBatchResponse | null> {
+    const userId = this.state.currentUser?.id;
+    if (!userId || !this.state.isAuthenticated || this.isSyncing) return null;
+    const generation = this.generation;
     this.isSyncing = true;
     this.updateState({ status: "syncing", errorMessage: null });
-
     try {
-      const localCases = getCases();
-      const pushes: SyncPushItem[] = localCases.map((c) => ({
-        id: c.id,
-        caseData: c.caseData,
-        formValues: c.formValues,
-        analysis: c.analysis,
-        status: c.status,
-        analysisStatus: c.analysisStatus,
-        reviewStatus: c.reviewStatus,
-        review: c.review,
-        createdAt: c.createdAt,
-        updatedAt: c.updatedAt,
-      }));
-
-      const res = await fetch("/api/cloud/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pushes,
-          since: this.state.lastSyncedAt || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error(`Sync server responded with HTTP ${res.status}`);
-      }
-
-      const syncData: { success: boolean } & SyncBatchResponse = await res.json();
-      if (!syncData.success) {
-        throw new Error("Server rejected synchronization batch.");
-      }
-
-      // Check conflicts
-      const conflicts = syncData.results
-        .filter((r) => r.status === "conflict" && r.serverCase)
-        .map((r) => ({
-          localId: r.caseId,
-          serverCase: r.serverCase!,
+      const pending = getWorkspaceRecords(userId).filter((c) => c.sync?.dirty !== false);
+      const chunks = pending.length ? Array.from({ length: Math.ceil(pending.length / 100) }, (_, i) => pending.slice(i * 100, (i + 1) * 100)) : [[]];
+      const aggregate: SyncBatchResponse = { userId, results: [], pulledCases: [], serverTime: "" };
+      const pulled = new Map<string, CloudCaseRecord>();
+      let failed = false;
+      for (const snapshots of chunks) {
+        const pushes = snapshots.map((c): SyncPushItem => ({
+          id: c.id, caseData: c.caseData, formValues: c.formValues, analysis: c.analysis,
+          status: c.status, analysisStatus: c.analysisStatus, reviewStatus: c.reviewStatus, review: c.review,
+          createdAt: c.createdAt, updatedAt: c.updatedAt, version: c.sync?.serverVersion ?? 0, deleted: Boolean(c.deletedAt),
         }));
-
-      // Apply pulled cases that are newer or created on other devices
-      if (syncData.pulledCases && syncData.pulledCases.length > 0) {
-        for (const cloudCase of syncData.pulledCases) {
-          if (!cloudCase.deletedAt) {
-            saveCase({
-              id: cloudCase.id,
-              caseData: cloudCase.caseData,
-              formValues: cloudCase.formValues,
-              analysis: cloudCase.analysis,
-              status: cloudCase.status,
-              analysisStatus: cloudCase.analysisStatus,
-              reviewStatus: cloudCase.reviewStatus,
-              review: cloudCase.review,
-              createdAt: cloudCase.createdAt,
-              updatedAt: cloudCase.updatedAt,
-            });
-          }
+        const data = await this.requestSync(userId, generation, pushes);
+        if (data.results.length !== snapshots.length || new Set(data.results.map((r) => r.caseId)).size !== snapshots.length ||
+          data.results.some((r) => !snapshots.some((c) => c.id === r.caseId))) throw new Error("Incomplete synchronization acknowledgement. Pending changes are retained.");
+        for (const result of data.results) {
+          const snapshot = snapshots.find((c) => c.id === result.caseId)!;
+          if (!["created", "updated", "up_to_date"].includes(result.status)) continue;
+          if ((!snapshot.deletedAt && (!result.serverCase || result.serverCase.deletedAt ||
+            (result.serverVersion !== undefined && result.serverVersion !== result.serverCase.version))) ||
+            (snapshot.deletedAt && (result.status === "created" || (result.status === "updated" &&
+              (result.serverVersion === undefined || result.serverVersion <= (snapshot.sync?.serverVersion ?? 0))))))
+            throw new Error("Invalid synchronization acknowledgement. Pending changes are retained.");
         }
+        for (const result of data.results) {
+          const snapshot = snapshots.find((c) => c.id === result.caseId)!;
+          if (result.status === "error" || result.status === "conflict") {
+            failed = true;
+            if (result.serverCase) retainSyncConflict(userId, result.serverCase);
+          } else if (snapshot.deletedAt) {
+            acknowledgeDeletedCase(userId, snapshot.id, snapshot.sync!.revision, result.serverVersion ?? snapshot.sync?.serverVersion ?? 0);
+          } else if (result.serverCase) {
+            applySyncedCase(userId, result.serverCase, snapshot.sync?.revision, snapshot.id);
+          } else throw new Error("Missing synchronized case data. Pending changes are retained.");
+        }
+        for (const record of data.pulledCases) { applySyncedCase(userId, record); pulled.set(record.id, record); }
+        aggregate.results.push(...data.results);
+        aggregate.serverTime = data.serverTime;
       }
-
-      const now = syncData.serverTime || new Date().toISOString();
-      if (typeof window !== "undefined") {
-        localStorage.setItem(STORAGE_LAST_SYNC_KEY, now);
-      }
-
-      this.updateState({
-        status: conflicts.length > 0 ? "conflict" : "synced",
-        lastSyncedAt: now,
-        conflictCases: conflicts,
-        pendingChanges: 0,
-      });
-
-      return syncData;
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Sync encountered an unexpected failure.";
-      this.updateState({
-        status: "error",
-        errorMessage: msg,
-      });
+      this.assertCurrent(userId, generation);
+      aggregate.pulledCases = [...pulled.values()];
+      const current = this.getState();
+      if (!failed && current.pendingChanges === 0 && current.conflictCases.length === 0) {
+        window.localStorage.setItem(workspaceStorageKey("last-sync", userId), aggregate.serverTime);
+        this.updateState({ status: "synced" });
+      } else this.updateState({ status: current.conflictCases.length ? "conflict" : "error",
+        errorMessage: "Some changes remain pending. Local edits and server conflict copies have been retained." });
+      return aggregate;
+    } catch (err) {
+      if (generation === this.generation) this.updateState({ status: "error", errorMessage: err instanceof Error ? err.message : "Synchronization failed. Pending changes are retained." });
       return null;
-    } finally {
-      this.isSyncing = false;
-    }
+    } finally { this.isSyncing = false; }
   }
 
-  /**
-   * Migrate existing local cases to cloud storage with explicit consent.
-   * Prompts user with automated backup download before transmitting clinical records.
-   */
-  public async migrateLocalCases(
-    strategy: MigrationStrategy = "skip_existing",
-    userConsentGiven = true
-  ): Promise<MigrationResult> {
-    if (!this.state.isAuthenticated) {
-      throw new Error("You must be logged in to migrate clinical cases to the cloud.");
-    }
-
-    if (!userConsentGiven) {
-      throw new Error("Explicit clinician consent is required before proceeding.");
-    }
-
-    // Step 1: Guarantee recovery safety by exporting offline backup to user's disk
+  public async migrateLocalCases(strategy: MigrationStrategy = "skip_existing", consent = false, source: "workspace" | "unassigned" = "workspace"): Promise<MigrationResult> {
+    const userId = this.state.currentUser?.id;
+    if (!userId || !this.state.isAuthenticated) throw new Error("Sign in before importing cases.");
+    if (!consent) throw new Error("Explicit clinician consent is required before importing cases.");
+    if (this.isSyncing) throw new Error("Wait for the current synchronization to finish.");
+    const generation = this.generation;
+    const records = source === "unassigned" ? getUnassignedCases() : getCases();
+    const result: MigrationResult = { totalSubmitted: records.length, importedCount: 0, skippedCount: 0,
+      failedCount: 0, failures: [], importedCaseIds: [], completedAt: new Date().toISOString() };
+    if (!records.length) return result;
+    // Failure to create the recovery download aborts transmission.
+    if (typeof document === "undefined") throw new Error("A browser recovery download is required before importing cases.");
+    const url = URL.createObjectURL(new Blob([exportCaseRecords(records)], { type: "application/json" }));
     try {
-      if (typeof window !== "undefined" && typeof document !== "undefined") {
-        const jsonBundle = exportCases();
-        const dateStr = new Date().toISOString().split("T")[0];
-        const blob = new Blob([jsonBundle], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `dentarith-pre-migration-backup-${dateStr}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+      const anchor = document.createElement("a"); anchor.href = url;
+      anchor.download = `dentarith-pre-import-${Date.now()}.json`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+    } finally { URL.revokeObjectURL(url); }
+    this.assertCurrent(userId, generation);
+    this.isSyncing = true;
+    this.updateState({ status: "syncing", errorMessage: null });
+    try {
+      for (let i = 0; i < records.length; i += 100) {
+        this.assertCurrent(userId, generation);
+        const res = await fetch("/api/cloud/migrate", { method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ expectedUserId: userId, cases: records.slice(i, i + 100), strategy, userConsentGiven: true }) });
+        this.assertCurrent(userId, generation);
+        if (!res.ok) throw new Error(`Case import failed (HTTP ${res.status}). Source records are retained.`);
+        const parsed = migrationResponseSchema.safeParse(await res.json());
+        this.assertCurrent(userId, generation);
+        if (!parsed.success || parsed.data.userId !== userId) throw new Error("Invalid case import response. Source records are retained.");
+        const part = parsed.data;
+        result.importedCount += part.importedCount; result.skippedCount += part.skippedCount;
+        result.failedCount += part.failedCount; result.failures.push(...part.failures);
+        result.importedCaseIds.push(...part.importedCaseIds); result.completedAt = part.completedAt;
       }
-    } catch (backupErr) {
-      console.warn("Pre-migration backup export warning:", backupErr);
-    }
-
-    const localCases = getCases();
-    if (localCases.length === 0) {
-      return {
-        totalSubmitted: 0,
-        importedCount: 0,
-        skippedCount: 0,
-        failedCount: 0,
-        failures: [],
-        importedCaseIds: [],
-        completedAt: new Date().toISOString(),
-      };
-    }
-
-    this.updateState({ status: "syncing" });
-
-    const res = await fetch("/api/cloud/migrate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        cases: localCases,
-        strategy,
-        userConsentGiven: true,
-      }),
-    });
-
-    if (!res.ok) {
-      const errData = await res.json().catch(() => null);
-      const errMsg = errData?.error?.message || `Server returned HTTP ${res.status}`;
-      this.updateState({ status: "error", errorMessage: errMsg });
-      throw new Error(errMsg);
-    }
-
-    const result: MigrationResult = await res.json();
-
-    const now = result.completedAt || new Date().toISOString();
-    if (typeof window !== "undefined") {
-      localStorage.setItem(STORAGE_LAST_SYNC_KEY, now);
-    }
-
-    this.updateState({
-      status: "synced",
-      lastSyncedAt: now,
-      errorMessage: null,
-    });
-
-    return result;
+      const data = await this.requestSync(userId, generation, []);
+      for (const serverCase of data.pulledCases) {
+        const snapshot = source === "workspace" && result.importedCaseIds.includes(serverCase.id) ? records.find((c) => c.id === serverCase.id) : undefined;
+        applySyncedCase(userId, serverCase, snapshot?.sync?.revision);
+      }
+      this.updateState({ status: result.failedCount ? "error" : "local_only", errorMessage: result.failedCount ? "Some imports failed. Source records are retained." : null });
+      return result;
+    } catch (err) {
+      if (generation === this.generation) this.updateState({ status: "error", errorMessage: "Case import did not complete. Source records and any successful server imports are retained." });
+      throw err;
+    } finally { this.isSyncing = false; }
   }
 }
 
-// Global client singleton
 let syncClientInstance: CloudSyncClient | null = null;
-
 export function getCloudSyncClient(): CloudSyncClient {
-  if (!syncClientInstance) {
-    syncClientInstance = new CloudSyncClient();
-  }
+  if (!syncClientInstance) syncClientInstance = new CloudSyncClient();
   return syncClientInstance;
 }

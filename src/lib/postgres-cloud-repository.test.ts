@@ -189,6 +189,15 @@ describe("PostgresCloudRepository Unit & Conformance Tests (Mocked DB Client)", 
   });
 
   describe("Transactional Rollback on Failure", () => {
+    it("checks deletion's expected version under the row lock before any mutation", async () => {
+      const mockClient = { query: vi.fn().mockResolvedValue({ rows: [{ version: 3, deleted_at: null }] }) };
+      vi.mocked(dbClient.withTransaction).mockImplementation(async (callback) =>
+        callback(mockClient as unknown as import("pg").PoolClient));
+      await expect(repo.deleteCase(userA, "stale-delete", undefined, 2)).rejects.toThrow(ConcurrencyError);
+      expect(mockClient.query).toHaveBeenCalledTimes(1);
+      expect(mockClient.query).toHaveBeenCalledWith(expect.stringContaining("FOR UPDATE"), ["stale-delete", userA]);
+    });
+
     it("bubbles up error and initiates rollback when case insertion fails", async () => {
       const mockClient = {
         query: vi.fn().mockImplementation((sql: string) => {

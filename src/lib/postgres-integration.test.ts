@@ -1,122 +1,150 @@
 /**
- * Sprint 4.2 Real PostgreSQL Integration Test Suite.
- *
- * MANDATORY RULE:
- * This suite executes real SQL commands against a live PostgreSQL database IF and ONLY IF
- * a real database connection is established via DATABASE_URL or TEST_DATABASE_URL.
- * If no live database is available, live tests are conditionally skipped and explicitly reported
- * as BLOCKED by unavailable database infrastructure.
+ * Explicit disposable-local PostgreSQL checks; never part of the default suite.
+ * Synthetic fixture rows are retained. Teardown only closes connections.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import {
-  isDatabaseConfigured,
-  testDatabaseConnection,
-  closePool,
-} from "./db-client";
+import { randomUUID } from "node:crypto";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { closePool, query, testDatabaseConnection } from "./db-client";
 import { runMigrations } from "./db-migrate";
 import { PostgresCloudRepository } from "./postgres-cloud-repository";
+import { PostgresUserStore } from "./postgres-user-store";
+import { ConcurrencyError, NotFoundError } from "./cloud-repository";
 import { BENCHMARK_CASE_PULPITIS } from "./benchmark-cases";
 import type { StoredCase } from "./case-storage";
+import type { UserProfile } from "./auth-types";
+import { getPostgresTestUrl } from "../../tests/postgres-safety";
 
-describe("Live PostgreSQL Database Integration (Conditional on Infrastructure)", () => {
-  let isLiveDbAvailable = false;
-  let testRepoInstance1: PostgresCloudRepository;
-  let testRepoInstance2: PostgresCloudRepository;
+const approvedUrl = getPostgresTestUrl(process.env);
+if (process.env.DATABASE_URL !== approvedUrl) {
+  throw new Error("PostgreSQL integration must use the dedicated test configuration.");
+}
+
+function syntheticCase(chiefComplaint = "Synthetic database persistence check"): StoredCase {
+  const id = `test-${randomUUID()}`;
+  return {
+    ...BENCHMARK_CASE_PULPITIS,
+    id,
+    caseData: {
+      ...BENCHMARK_CASE_PULPITIS.caseData,
+      caseInformation: { ...BENCHMARK_CASE_PULPITIS.caseData.caseInformation, caseId: id },
+      chiefComplaint,
+    },
+    status: "draft",
+    analysisStatus: "current",
+    reviewStatus: "pending",
+    review: null,
+    analysis: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+describe("Disposable PostgreSQL persistence, isolation, and transactions", () => {
+  let userA: UserProfile;
+  let userB: UserProfile;
+  let repo: PostgresCloudRepository;
 
   beforeAll(async () => {
+    // Failed connectivity is a failure, not a suite that silently skips assertions.
     const health = await testDatabaseConnection();
-    isLiveDbAvailable = health.ok;
-
-    if (isLiveDbAvailable) {
-      console.log("[Dentarith Live DB] Live PostgreSQL detected. Applying schema migrations...");
-      await runMigrations();
-      testRepoInstance1 = new PostgresCloudRepository();
-      testRepoInstance2 = new PostgresCloudRepository();
-    } else {
-      console.log(
-        "[Dentarith Live DB] Live PostgreSQL is NOT configured or unreachable (" +
-          (health.error || "No DATABASE_URL") +
-          "). Live database integration checks are flagged as BLOCKED by missing infrastructure."
-      );
+    if (!health.ok) {
+      throw new Error("Disposable PostgreSQL is unavailable. No migrations or fixtures were applied.");
     }
+    const database = await query<{ name: string }>("SELECT current_database() AS name");
+    expect(database.rows[0].name).toBe(decodeURIComponent(new URL(approvedUrl).pathname.slice(1)));
+    await runMigrations();
+
+    // Required foreign-key users exist before cases are written. Do not seed demos.
+    const users = new PostgresUserStore({ seedDemo: false });
+    const suffix = randomUUID();
+    userA = await users.create({
+      email: `integration-a-${suffix}@example.test`,
+      password: "SyntheticIntegration123!",
+      name: "Synthetic Clinician A",
+    });
+    userB = await users.create({
+      email: `integration-b-${suffix}@example.test`,
+      password: "SyntheticIntegration123!",
+      name: "Synthetic Clinician B",
+    });
+    repo = new PostgresCloudRepository({ seedDemo: false });
   });
 
   afterAll(async () => {
-    if (isLiveDbAvailable) {
-      await testRepoInstance1?.clear?.();
-      await closePool();
-    }
+    // Never clear, delete, truncate, or drop. The disposable database's owner
+    // controls its lifetime; repeated runs use distinct synthetic IDs.
+    await closePool();
   });
 
-  it("accurately detects database availability status without false positives", async () => {
-    const configured = isDatabaseConfigured();
-    const health = await testDatabaseConnection();
-
-    if (!configured) {
-      expect(health.ok).toBe(false);
-      expect(health.error).toContain("DATABASE_URL is not configured");
-    } else {
-      expect(typeof health.ok).toBe("boolean");
-    }
+  it("applies migrations idempotently", async () => {
+    expect(await runMigrations()).toEqual({ applied: [], alreadyUpToDate: true });
   });
 
-  describe("Real PostgreSQL Durability, Isolation, & Concurrency (Runs only with Live DB)", () => {
-    it.skipIf(!isLiveDbAvailable)(
-      "persists records across distinct repository instances and restarts",
-      async () => {
-        const testUserId = `usr_test_${Date.now()}`;
-        const syntheticCase: StoredCase = {
-          ...BENCHMARK_CASE_PULPITIS,
-          id: `case-durable-${Date.now()}`,
-          caseData: {
-            ...BENCHMARK_CASE_PULPITIS.caseData,
-            chiefComplaint: "Durable database persistence test",
-          },
-          status: "draft",
-          analysisStatus: "current",
-          reviewStatus: "pending",
-          analysis: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        };
+  it("persists a case and audit event after reopening the connection pool", async () => {
+    const input = syntheticCase();
+    const created = await repo.createCase(userA.id, input, userA.email);
+    await closePool();
+    const secondRepo = new PostgresCloudRepository({ seedDemo: false });
+    expect(await secondRepo.getCase(userA.id, created.id)).toMatchObject({
+      id: input.id,
+      version: 1,
+      caseData: { chiefComplaint: input.caseData.chiefComplaint },
+    });
+    expect(await secondRepo.listAuditEvents(userA.id, created.id)).toEqual([
+      expect.objectContaining({ action: "create", version: 1, userId: userA.id }),
+    ]);
+  });
 
-        // Write via Instance 1
-        const created = await testRepoInstance1.createCase(testUserId, syntheticCase);
-        expect(created.id).toBe(syntheticCase.id);
+  it("isolates case reads, updates, lists, and audit events by user", async () => {
+    const created = await repo.createCase(userA.id, syntheticCase(), userA.email);
+    expect(await repo.getCase(userB.id, created.id)).toBeNull();
+    expect(await repo.listCases(userB.id)).toEqual([]);
+    expect(await repo.listAuditEvents(userB.id, created.id)).toEqual([]);
+    await expect(repo.updateCase(userB.id, created.id, { status: "analyzed" }, 1))
+      .rejects.toThrow(NotFoundError);
+    expect((await repo.getCase(userA.id, created.id))?.version).toBe(1);
+  });
 
-        // Read via completely separate Instance 2
-        const fetched = await testRepoInstance2.getCase(testUserId, created.id);
-        expect(fetched).not.toBeNull();
-        expect(fetched?.id).toBe(created.id);
-        expect(fetched?.caseData.chiefComplaint).toBe("Durable database persistence test");
-      }
-    );
+  it("allows only one concurrent update from the same expected version", async () => {
+    const created = await repo.createCase(userA.id, syntheticCase(), userA.email);
+    const results = await Promise.allSettled([
+      repo.updateCase(userA.id, created.id, {
+        caseData: { ...created.caseData, chiefComplaint: "Synthetic concurrent edit A" },
+      }, 1, userA.email),
+      repo.updateCase(userA.id, created.id, {
+        caseData: { ...created.caseData, chiefComplaint: "Synthetic concurrent edit B" },
+      }, 1, userA.email),
+    ]);
+    expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    const rejected = results.find((result) => result.status === "rejected");
+    expect(rejected?.status === "rejected" && rejected.reason).toBeInstanceOf(ConcurrencyError);
+    const stored = await repo.getCase(userA.id, created.id);
+    expect(stored?.version).toBe(2);
+    expect(["Synthetic concurrent edit A", "Synthetic concurrent edit B"])
+      .toContain(stored?.caseData.chiefComplaint);
+    const events = await repo.listAuditEvents(userA.id, created.id);
+    expect(events).toHaveLength(2);
+    expect(events.filter((event) => event.action === "update")).toHaveLength(1);
+  });
 
-    it.skipIf(!isLiveDbAvailable)(
-      "enforces cross-tenant isolation in real PostgreSQL database",
-      async () => {
-        const userA = `usr_tenant_a_${Date.now()}`;
-        const userB = `usr_tenant_b_${Date.now()}`;
+  it("rolls back a case insertion when its audit insert fails", async () => {
+    const input = syntheticCase();
+    // The case insert is valid; user_email exceeds the audit column's varchar(255).
+    await expect(repo.createCase(userA.id, input, "x".repeat(256))).rejects.toThrow();
+    expect(await repo.getCase(userA.id, input.id)).toBeNull();
+    expect(await repo.listAuditEvents(userA.id, input.id)).toEqual([]);
+  });
 
-        const caseA = await testRepoInstance1.createCase(userA, {
-          ...BENCHMARK_CASE_PULPITIS,
-          id: `case-tenant-${Date.now()}`,
-          caseData: {
-            ...BENCHMARK_CASE_PULPITIS.caseData,
-            chiefComplaint: "Tenant A private record",
-          },
-          status: "draft",
-          analysisStatus: "current",
-          reviewStatus: "pending",
-          analysis: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-
-        // User B attempts to read User A's case in real PostgreSQL
-        const readByUserB = await testRepoInstance1.getCase(userB, caseA.id);
-        expect(readByUserB).toBeNull();
-      }
-    );
+  it("rolls back an updated case/version when its audit insert fails", async () => {
+    const input = syntheticCase();
+    const created = await repo.createCase(userA.id, input, userA.email);
+    await expect(repo.updateCase(userA.id, created.id, {
+      caseData: { ...created.caseData, chiefComplaint: "Synthetic edit that must roll back" },
+    }, 1, "x".repeat(256))).rejects.toThrow();
+    expect(await repo.getCase(userA.id, created.id)).toMatchObject({
+      version: 1,
+      caseData: { chiefComplaint: input.caseData.chiefComplaint },
+    });
+    expect(await repo.listAuditEvents(userA.id, created.id)).toHaveLength(1);
   });
 });

@@ -259,6 +259,26 @@ describe("Sprint 4 Cloud API Endpoints & Security Enforcement", () => {
   });
 
   describe("Batch Sync & Migration Endpoints (/api/cloud/sync & /api/cloud/migrate)", () => {
+    it.each([undefined, "another-account"])("rejects sync/import with intended account %s before creating cases", async (expectedUserId) => {
+      const loginRes = await loginHandler(new Request("http://localhost/api/auth/login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: "dr.chen@dentarith.clinic", password: "ClinicalPassword123!" }),
+      }));
+      const cookie = loginRes.headers.get("Set-Cookie")?.split(";")[0] || "";
+      const input = createSyntheticCase("wrong-context");
+      for (const [handler, path, body] of [
+        [syncHandler, "sync", { expectedUserId, pushes: [input] }],
+        [migrateHandler, "migrate", { expectedUserId, cases: [input], strategy: "skip_existing", userConsentGiven: true }],
+      ] as const) {
+        const response = await handler(new Request(`http://localhost/api/cloud/${path}`, {
+          method: "POST", headers: { "Content-Type": "application/json", cookie }, body: JSON.stringify(body),
+        }));
+        expect(response.status).toBe(409);
+        expect((await response.json()).error.code).toBe("AUTH_CONTEXT_CHANGED");
+      }
+      expect(await cloudRepository.getCase("usr_clinical_demo_01", input.id)).toBeNull();
+    });
+
     it("handles batch sync requests for authenticated users", async () => {
       const loginReq = new Request("http://localhost:3000/api/auth/login", {
         method: "POST",
@@ -279,6 +299,7 @@ describe("Sprint 4 Cloud API Endpoints & Security Enforcement", () => {
         },
         body: JSON.stringify({
           pushes: [createSyntheticCase("case-batch-sync-1")],
+          expectedUserId: "usr_clinical_demo_01",
         }),
       });
 
@@ -310,6 +331,7 @@ describe("Sprint 4 Cloud API Endpoints & Security Enforcement", () => {
         },
         body: JSON.stringify({
           cases: [createSyntheticCase("case-consent-1")],
+          expectedUserId: "usr_clinical_demo_01",
           strategy: "skip_existing",
           userConsentGiven: false,
         }),
@@ -327,6 +349,7 @@ describe("Sprint 4 Cloud API Endpoints & Security Enforcement", () => {
         },
         body: JSON.stringify({
           cases: [createSyntheticCase("case-consent-1")],
+          expectedUserId: "usr_clinical_demo_01",
           strategy: "skip_existing",
           userConsentGiven: true,
         }),
@@ -419,6 +442,7 @@ describe("Sprint 4 Cloud API Endpoints & Security Enforcement", () => {
         },
         body: JSON.stringify({
           pushes: [offlineCase],
+          expectedUserId: "usr_clinical_demo_01",
           // Client queries for changes since 1 hour ago
           since: new Date(Date.now() - 3600 * 1000).toISOString(),
         }),

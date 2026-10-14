@@ -43,8 +43,10 @@ interface DbClinicalCaseRow {
 }
 
 export class PostgresCloudRepository {
-  constructor() {
-    this.seedDemoCloudData();
+  constructor(options: { seedDemo?: boolean } = {}) {
+    if (options.seedDemo !== false) {
+      void this.seedDemoCloudData();
+    }
   }
 
   private async seedDemoCloudData(): Promise<void> {
@@ -378,7 +380,8 @@ export class PostgresCloudRepository {
   async deleteCase(
     userId: string,
     caseId: string,
-    userEmail?: string
+    userEmail?: string,
+    expectedVersion?: number
   ): Promise<{ success: boolean; version: number }> {
     return await withTransaction(async (client) => {
       const currentRes = await client.query(
@@ -390,6 +393,9 @@ export class PostgresCloudRepository {
         throw new NotFoundError(`Case ${caseId} not found.`);
       }
 
+      if (expectedVersion !== undefined && expectedVersion !== currentRes.rows[0].version) {
+        throw new ConcurrencyError(caseId, currentRes.rows[0].version, expectedVersion);
+      }
       const nextVersion = currentRes.rows[0].version + 1;
       const now = new Date().toISOString();
 
@@ -434,7 +440,12 @@ export class PostgresCloudRepository {
 
         if (push.deleted) {
           if (existingRow && existingRow.user_id === userId && existingRow.deleted_at === null) {
-            const delRes = await this.deleteCase(userId, push.id, userEmail);
+            if (push.version !== existingRow.version) {
+              results.push({ caseId: push.id, status: "conflict", serverVersion: existingRow.version,
+                serverCase: this.mapRowToCloudCase(existingRow as unknown as DbClinicalCaseRow) });
+              continue;
+            }
+            const delRes = await this.deleteCase(userId, push.id, userEmail, push.version);
             results.push({
               caseId: push.id,
               status: "updated",
@@ -482,7 +493,7 @@ export class PostgresCloudRepository {
           const existingRecord = this.mapRowToCloudCase(existingRow as unknown as DbClinicalCaseRow);
           const clientVersion = push.version || 0;
 
-          if (clientVersion < existingRecord.version) {
+          if (existingRecord.deletedAt || clientVersion !== existingRecord.version) {
             // Server has newer updates -> conflict!
             results.push({
               caseId: push.id,
@@ -506,7 +517,7 @@ export class PostgresCloudRepository {
                 review: push.review,
                 updatedAt: push.updatedAt,
               },
-              existingRecord.version,
+              push.version,
               userEmail
             );
             results.push({
@@ -521,7 +532,7 @@ export class PostgresCloudRepository {
         results.push({
           caseId: push.id,
           status: "error",
-          error: err instanceof Error ? err.message : "Sync push failed.",
+          error: err instanceof ConcurrencyError ? "The case changed during synchronization. Please review both copies." : "The case could not be synchronized. Please retry.",
         });
       }
     }
@@ -533,6 +544,7 @@ export class PostgresCloudRepository {
     });
 
     return {
+      userId,
       results,
       pulledCases,
       serverTime: new Date().toISOString(),
@@ -688,14 +700,9 @@ export class PostgresCloudRepository {
   }
 
   /**
-   * Clear all records (used in test fixtures).
+   * Retained for interface compatibility; persistent records cannot be bulk-cleared.
    */
   async clear(): Promise<void> {
-    if (!isDatabaseConfigured()) return;
-    await withTransaction(async (client) => {
-      await client.query("DELETE FROM clinical_cases");
-      await client.query("DELETE FROM audit_events");
-    });
-    await this.seedDemoCloudData();
+    throw new Error("Bulk clearing PostgreSQL cases is disabled. Use an isolated disposable test database.");
   }
 }
