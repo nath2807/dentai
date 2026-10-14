@@ -8,6 +8,7 @@ import {
   StatCard,
   LikelihoodBadge,
   ToothPill,
+  CaseStatusPill,
 } from "@/components/clinical-ui";
 import {
   getCases,
@@ -154,7 +155,7 @@ export default function CasesPage() {
                 type="button"
                 onClick={handleCloudSync}
                 disabled={isSyncing}
-                className="glass-button inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200/80 bg-white/80 px-3.5 text-xs font-bold text-teal-800 shadow-xs transition hover:bg-white disabled:opacity-50"
+                className="glass-pill inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200/80 bg-white/80 px-3.5 text-xs font-bold text-teal-800 shadow-xs transition hover:bg-white disabled:opacity-50"
               >
                 <Icon name="sync" size={14} className={isSyncing ? "animate-spin" : ""} />
                 <span>{isSyncing ? "Syncing..." : "Sync Cloud"}</span>
@@ -163,14 +164,14 @@ export default function CasesPage() {
             <button
               type="button"
               onClick={handleLoadBenchmarks}
-              className="glass-button inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200/80 bg-teal-50/80 px-3.5 text-xs font-bold text-teal-900 shadow-xs transition hover:bg-teal-100/90"
+              className="glass-pill inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200/80 bg-teal-50/80 px-3.5 text-xs font-bold text-teal-900 shadow-xs transition hover:bg-teal-100/90"
             >
               <Icon name="spark" size={14} />
               <span>Seed Reference Benchmarks</span>
             </button>
             <Link
               href="/cases/new"
-              className="glass-button glass-shine inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs transition hover:bg-teal-800"
+              className="glass-pill glass-shine inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs transition hover:bg-teal-800"
             >
               <Icon name="plus" size={14} />
               <span>New Clinical Case</span>
@@ -240,7 +241,7 @@ export default function CasesPage() {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
+          <div className="glass-segmented-control flex flex-wrap items-center gap-1 p-1">
             {[
               { id: "all", label: "All Cases" },
               { id: "analyzed", label: "Analyzed" },
@@ -252,10 +253,10 @@ export default function CasesPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`glass-button rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                className={`glass-pill rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
                   statusFilter === tab.id
-                    ? "bg-teal-700 text-white shadow-xs"
-                    : "bg-white/60 text-slate-600 hover:bg-white/90 border border-slate-200/60"
+                    ? "bg-teal-700 text-white shadow-xs font-bold"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-white/60"
                 }`}
               >
                 {tab.label}
@@ -322,9 +323,6 @@ export default function CasesPage() {
                       c.analysis?.possibleDiagnoses?.[0]?.diagnosis || "Pending Analysis";
                     const likelihood =
                       c.analysis?.possibleDiagnoses?.[0]?.likelihood;
-                    const isStale = c.analysisStatus === "stale" && Boolean(c.analysis);
-                    const isReviewed =
-                      c.reviewStatus === "reviewed" || c.status === "reviewed";
 
                     return (
                       <tr
@@ -395,26 +393,11 @@ export default function CasesPage() {
 
                         {/* Review Status */}
                         <td className="px-4 py-4 whitespace-nowrap">
-                          {isStale ? (
-                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-amber-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-300/80">
-                              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                              Stale Analysis
-                            </span>
-                          ) : isReviewed ? (
-                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-emerald-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-300/80">
-                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                              Clinician Verified
-                            </span>
-                          ) : c.analysis ? (
-                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-teal-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800 border border-teal-300/80">
-                              <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
-                              Needs Review
-                            </span>
-                          ) : (
-                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[11px] font-medium text-slate-600 border border-slate-200/80">
-                              Draft Intake
-                            </span>
-                          )}
+                          <CaseStatusPill
+                            status={c.status}
+                            analysisStatus={c.analysisStatus}
+                            reviewStatus={c.reviewStatus}
+                          />
                         </td>
 
                         {/* Actions */}
@@ -422,7 +405,7 @@ export default function CasesPage() {
                           <div className="inline-flex items-center gap-1.5">
                             <Link
                               href={`/cases/${encodeURIComponent(c.id)}`}
-                              className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2.5 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                              className="glass-pill inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2.5 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
                               title="Open case workspace"
                             >
                               Open
@@ -430,7 +413,7 @@ export default function CasesPage() {
                             {c.analysis && (
                               <Link
                                 href={`/cases/${encodeURIComponent(c.id)}/report`}
-                                className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                                className="glass-pill inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
                                 title="Print clinical report"
                               >
                                 <Icon name="printer" size={14} />
@@ -438,7 +421,7 @@ export default function CasesPage() {
                             )}
                             <Link
                               href={`/cases/new?id=${encodeURIComponent(c.id)}`}
-                              className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                              className="glass-pill inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
                               title="Edit clinical findings"
                             >
                               <Icon name="edit" size={14} />
@@ -446,7 +429,7 @@ export default function CasesPage() {
                             <button
                               type="button"
                               onClick={() => setCaseToDelete(c)}
-                              className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-red-600 hover:border-red-300 hover:bg-red-50 transition"
+                              className="glass-pill inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-red-600 hover:border-red-300 hover:bg-red-50 transition"
                               title="Delete case"
                             >
                               <Icon name="trash" size={14} />

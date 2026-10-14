@@ -554,16 +554,16 @@ export function LikelihoodBadge({
   likelihood: "high" | "moderate" | "low" | string;
 }) {
   const styles: Record<string, string> = {
-    high: "bg-teal-50/90 text-teal-900 border-teal-300 font-bold",
-    moderate: "bg-amber-50/90 text-amber-900 border-amber-300 font-semibold",
-    low: "bg-slate-100/90 text-slate-700 border-slate-200 font-medium",
+    high: "bg-teal-50/90 text-teal-950 border-teal-300 font-bold ring-1 ring-teal-500/20 shadow-xs",
+    moderate: "bg-amber-50/90 text-amber-950 border-amber-300 font-semibold ring-1 ring-amber-500/20 shadow-xs",
+    low: "bg-slate-100/90 text-slate-800 border-slate-300 font-medium shadow-xs",
   };
   const key = likelihood.toLowerCase();
-  const cls = styles[key] || "bg-slate-100/90 text-slate-700 border-slate-200";
+  const cls = styles[key] || "bg-slate-100/90 text-slate-800 border-slate-300";
 
   return (
     <span
-      className={`glass-chip inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] capitalize tracking-wide shadow-xs ${cls}`}
+      className={`glass-pill inline-flex items-center backdrop-blur-md px-3 py-0.5 text-[11px] capitalize tracking-wide ${cls}`}
     >
       {likelihood} likelihood
     </span>
@@ -581,7 +581,7 @@ export function CategoryBadge({ category }: { category: string }) {
   };
 
   return (
-    <span className="glass-chip inline-flex items-center rounded-md bg-slate-100/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 border border-slate-200/80">
+    <span className="glass-chip inline-flex items-center rounded-lg bg-slate-100/85 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-800 border border-slate-200/90 backdrop-blur-md shadow-xs">
       {labels[category] || category}
     </span>
   );
@@ -593,7 +593,7 @@ export function ToothPill({ toothNumber }: { toothNumber?: string }) {
 
   return (
     <span
-      className="glass-chip inline-flex items-center gap-1 rounded-md bg-teal-50/90 px-2.5 py-1 text-xs font-bold text-teal-900 border border-teal-200/90 shadow-xs"
+      className="glass-pill inline-flex items-center gap-1.5 bg-teal-50/90 px-3 py-1 text-xs font-bold text-teal-950 border border-teal-200/90 shadow-xs ring-1 ring-teal-500/15"
       title={formatted}
     >
       <Icon name="tooth" size={13} className="text-teal-700" />
@@ -601,3 +601,111 @@ export function ToothPill({ toothNumber }: { toothNumber?: string }) {
     </span>
   );
 }
+
+export function CaseStatusPill({
+  status,
+  analysisStatus,
+  reviewStatus,
+}: {
+  status?: string;
+  analysisStatus?: "current" | "stale";
+  reviewStatus?: "pending" | "needs_review" | "reviewed";
+}) {
+  if (reviewStatus === "reviewed" || status === "reviewed") {
+    return (
+      <span className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-emerald-950 bg-emerald-50/90 border border-emerald-300 shadow-xs ring-1 ring-emerald-500/20">
+        <span className="h-2 w-2 rounded-full bg-emerald-500" />
+        <span>Reviewed &amp; Verified</span>
+      </span>
+    );
+  }
+
+  if (analysisStatus === "stale") {
+    return (
+      <span className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-amber-950 bg-amber-50/90 border border-amber-300 shadow-xs ring-1 ring-amber-500/20">
+        <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+        <span>Stale Analysis</span>
+      </span>
+    );
+  }
+
+  if (status === "analyzed" || reviewStatus === "needs_review") {
+    return (
+      <span className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-teal-950 bg-teal-50/90 border border-teal-300 shadow-xs ring-1 ring-teal-500/20">
+        <span className="h-2 w-2 rounded-full bg-teal-500" />
+        <span>Current Analysis</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="glass-pill inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold text-slate-700 bg-slate-100/90 border border-slate-300/80 shadow-xs">
+      <span className="h-2 w-2 rounded-full bg-slate-400" />
+      <span>Draft</span>
+    </span>
+  );
+}
+
+export function LiquidGlassSkeleton({
+  title = "Analyzing Clinical Findings...",
+  subtitle = "Dentarith reasoning pipeline is structuring diagnostic hypotheses and evidence mapping",
+  elapsedSeconds,
+}: {
+  title?: string;
+  subtitle?: string;
+  elapsedSeconds?: number;
+}) {
+  const steps = [
+    { label: "1. Anatomy & Quadrant Concordance", desc: "Validating tooth numbering (UNS/FDI) & arch orientation" },
+    { label: "2. Sensibility & Periodontal Evaluation", desc: "Synthesizing thermal, periapical, and probing depth markers" },
+    { label: "3. Differential Ranking & Likelihood", desc: "Calculating primary vs secondary diagnostic hypotheses" },
+    { label: "4. Contradiction & Evidence Synthesis", desc: "Detecting clinical conflicts & prioritizing missing information" },
+  ];
+
+  return (
+    <div className="glass-panel p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-200/80 pb-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-700 text-white shadow-md ring-2 ring-teal-500/30 animate-pulse">
+            <Icon name="spark" size={20} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-950 flex items-center gap-2">
+              <span>{title}</span>
+              <span className="flex h-2 w-2 rounded-full bg-teal-500 animate-ping" />
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+          </div>
+        </div>
+        {typeof elapsedSeconds === "number" && (
+          <span className="glass-pill px-3 py-1 text-xs font-semibold text-slate-600 self-start sm:self-center">
+            {elapsedSeconds}s elapsed (28s budget)
+          </span>
+        )}
+      </div>
+
+      {/* Multi-stage progressive steps */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        {steps.map((st, i) => (
+          <div key={i} className="glass-card-subtle p-3.5 rounded-xl border border-slate-200/80 flex items-start gap-3">
+            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-100/90 text-teal-800 text-[11px] font-bold border border-teal-200 shadow-xs">
+              {i + 1}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-slate-900 leading-tight">{st.label}</p>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">{st.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Glass shimmer bars */}
+      <div className="space-y-3 pt-2">
+        <div className="liquid-shimmer h-3.5 rounded-full w-full" />
+        <div className="liquid-shimmer h-3.5 rounded-full w-5/6" />
+        <div className="liquid-shimmer h-3.5 rounded-full w-3/4" />
+      </div>
+    </div>
+  );
+}
+

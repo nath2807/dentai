@@ -3,7 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AppShell, Icon, ToothPill } from "@/components/clinical-ui";
+import {
+  AppShell,
+  Icon,
+  ToothPill,
+  LikelihoodBadge,
+  CategoryBadge,
+  CaseStatusPill,
+  LiquidGlassSkeleton,
+} from "@/components/clinical-ui";
 import { formatToothWithSystem } from "@/lib/tooth-numbering";
 import {
   getCase,
@@ -26,8 +34,17 @@ export function CaseDetailContent({
   const [storedCase, setStoredCase] = useState<StoredCase | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isReanalyzing, setIsReanalyzing] = useState(false);
+  const [analysisElapsed, setAnalysisElapsed] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reanalyzeError, setReanalyzeError] = useState("");
+
+  useEffect(() => {
+    if (!isReanalyzing) return;
+    const interval = setInterval(() => {
+      setAnalysisElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isReanalyzing]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -41,6 +58,7 @@ export function CaseDetailContent({
   async function handleReanalyze() {
     if (!storedCase) return;
     const workspaceUserId = getWorkspaceUserId();
+    setAnalysisElapsed(0);
     setIsReanalyzing(true);
     setReanalyzeError("");
 
@@ -83,7 +101,7 @@ export function CaseDetailContent({
         (err.name === "TimeoutError" || err.name === "AbortError");
       setReanalyzeError(
         isTimeout
-          ? "Analysis timed out. Please check your connection and try again."
+          ? "Analysis timed out (exceeded 35s budget). Please verify your network connection and try again."
           : err instanceof Error
           ? err.message
           : "Re-analysis could not be completed."
@@ -113,7 +131,7 @@ export function CaseDetailContent({
     return (
       <AppShell activeItem="Clinical Cases">
         <div className="mx-auto max-w-3xl space-y-6 text-center">
-          <div className="glass-card p-12 text-center shadow-lg">
+          <div className="glass-panel p-12 text-center shadow-lg">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50/90 text-amber-700 border border-amber-200/80 shadow-xs">
               <Icon name="folder" size={26} />
             </div>
@@ -124,7 +142,7 @@ export function CaseDetailContent({
             <div className="mt-6">
               <Link
                 href="/cases"
-                className="glass-button glass-shine inline-flex h-9 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800 shadow-xs"
+                className="glass-pill glass-shine inline-flex h-9 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800 shadow-xs"
               >
                 <Icon name="arrow" size={14} />
                 Back to Cases List
@@ -152,10 +170,17 @@ export function CaseDetailContent({
               <span>/</span>
               <span>{caseId}</span>
             </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-              Case {caseId}
-            </h1>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <div className="mt-1 flex flex-wrap items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                Case {caseId}
+              </h1>
+              <CaseStatusPill
+                status={status}
+                analysisStatus={storedCase.analysisStatus}
+                reviewStatus={storedCase.reviewStatus}
+              />
+            </div>
+            <p className="mt-1 text-xs text-slate-500">
               Recorded on {new Date(storedCase.createdAt).toLocaleDateString()} • Last updated {new Date(storedCase.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </p>
           </div>
@@ -163,29 +188,29 @@ export function CaseDetailContent({
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/cases"
-              className="glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300/80 bg-white/70 px-3 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-800 shadow-xs"
+              className="glass-pill inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300/80 bg-white/70 px-3 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-800 shadow-xs"
             >
               <Icon name="arrow" size={14} />
               Back
             </Link>
             <Link
               href={`/cases/new?id=${encodeURIComponent(caseId)}`}
-              className="glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300/80 bg-white/70 px-3 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-800 shadow-xs"
+              className="glass-pill inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-300/80 bg-white/70 px-3 text-xs font-semibold text-slate-700 transition hover:border-teal-500 hover:text-teal-800 shadow-xs"
             >
               Edit Case
             </Link>
             <button
               onClick={handleReanalyze}
               disabled={isReanalyzing}
-              className="glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border border-teal-600/70 bg-teal-50/80 px-3 text-xs font-semibold text-teal-800 transition hover:bg-teal-100 disabled:opacity-50 shadow-xs"
+              className="glass-pill inline-flex h-9 items-center gap-1.5 rounded-lg border border-teal-600/70 bg-teal-50/80 px-3 text-xs font-semibold text-teal-800 transition hover:bg-teal-100 disabled:opacity-50 shadow-xs"
             >
-              <Icon name="spark" size={14} />
-              {isReanalyzing ? "Re-analyzing..." : "Re-analyze"}
+              <Icon name="spark" size={14} className={isReanalyzing ? "animate-spin text-teal-600" : ""} />
+              {isReanalyzing ? `Analyzing (${analysisElapsed}s)...` : "Re-analyze"}
             </button>
             {analysis && (
               <Link
                 href={`/cases/${encodeURIComponent(caseId)}/report`}
-                className="glass-button glass-shine inline-flex h-9 items-center gap-1.5 rounded-lg bg-teal-700 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
+                className="glass-pill glass-shine inline-flex h-9 items-center gap-1.5 rounded-lg bg-teal-700 px-3.5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
               >
                 <Icon name="report" size={14} />
                 Generate Report
@@ -193,7 +218,7 @@ export function CaseDetailContent({
             )}
             <button
               onClick={() => setShowDeleteModal(true)}
-              className="glass-button inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-200/80 bg-white/70 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 hover:border-rose-300 shadow-xs"
+              className="glass-pill inline-flex h-9 items-center gap-1.5 rounded-lg border border-rose-200/80 bg-white/70 px-3 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 hover:border-rose-300 shadow-xs"
             >
               Delete
             </button>
@@ -202,31 +227,40 @@ export function CaseDetailContent({
 
         {/* Re-analyze error alert if any */}
         {reanalyzeError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-700">
-            {reanalyzeError}
+          <div className="glass-card glass-tint-rose flex items-center justify-between rounded-xl border border-red-300 p-4 text-xs text-red-800 shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-bold">Error:</span>
+              <span>{reanalyzeError}</span>
+            </div>
+            <button
+              onClick={handleReanalyze}
+              className="glass-pill rounded-md bg-red-700 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-red-800"
+            >
+              Retry
+            </button>
           </div>
         )}
 
         {/* Stale Analysis Warning Banner */}
         {isStale && (
-          <div className="glass-card-subtle glass-tint-amber flex items-start justify-between gap-3 p-4 text-amber-950 shadow-xs">
+          <div className="glass-card glass-tint-amber flex items-start justify-between gap-4 p-4 rounded-xl border-2 border-amber-300/80 text-amber-950 shadow-md">
             <div className="flex items-start gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs font-bold text-amber-900 shadow-xs">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-200 text-xs font-bold text-amber-900 shadow-xs border border-amber-300">
                 !
               </span>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                  Stale Analysis Warning
+                  Stale Clinical Analysis &bull; Re-Verification Required
                 </p>
                 <p className="mt-0.5 text-xs leading-relaxed text-amber-900/90">
-                  Clinical data was modified after the last AI assessment. This analysis is based on an earlier version of this case.
+                  Clinical examination inputs or periodontal probing data were modified after this AI assessment was generated. This analysis reflects earlier diagnostic findings.
                 </p>
               </div>
             </div>
             <button
               onClick={handleReanalyze}
               disabled={isReanalyzing}
-              className="glass-button shrink-0 rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-amber-800 disabled:opacity-50"
+              className="glass-pill glass-shine shrink-0 rounded-lg bg-amber-700 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-amber-800 disabled:opacity-50"
             >
               {isReanalyzing ? "Re-analyzing..." : "Re-analyze Now"}
             </button>
@@ -235,7 +269,7 @@ export function CaseDetailContent({
 
         {/* Synthetic Benchmark Educational Disclaimer */}
         {caseId.startsWith("CASE-BENCH") && (
-          <div className="glass-card-subtle glass-tint-amber flex items-start gap-3 p-4 text-xs text-amber-950 shadow-xs">
+          <div className="glass-card-subtle glass-tint-amber flex items-start gap-3 p-4 rounded-xl text-xs text-amber-950 shadow-xs">
             <Icon name="spark" size={18} />
             <div className="space-y-0.5">
               <p className="font-bold uppercase tracking-wider text-amber-900">
@@ -429,23 +463,45 @@ export function CaseDetailContent({
         />
 
         {/* 2. AI Clinical Reasoning Section */}
-        {analysis ? (
+        {isReanalyzing ? (
           <div className="space-y-4">
             <div className="glass-panel flex items-center justify-between rounded-xl px-5 py-3 text-white shadow-md border border-teal-500/30 bg-gradient-to-r from-teal-800/90 to-teal-900/95">
               <div className="flex items-center gap-2.5">
-                <Icon name="spark" size={18} />
+                <Icon name="spark" size={18} className="animate-spin text-teal-300" />
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-wider">
+                    Dentarith AI Reasoning Pipeline Active
+                  </h2>
+                  <p className="text-[10px] text-teal-100/90">
+                    Synthesizing clinical findings &bull; Differential reasoning &bull; Elapsed: {analysisElapsed}s
+                  </p>
+                </div>
+              </div>
+              <span className="glass-chip rounded-full bg-teal-700/80 px-2.5 py-0.5 text-[10px] font-semibold text-white border border-teal-500/40 shadow-xs">
+                In Flight ({analysisElapsed}s)
+              </span>
+            </div>
+            <LiquidGlassSkeleton elapsedSeconds={analysisElapsed} />
+          </div>
+        ) : analysis ? (
+          <div className="space-y-4">
+            <div className="glass-panel flex items-center justify-between rounded-xl px-5 py-3.5 text-white shadow-md border border-teal-500/30 bg-gradient-to-r from-teal-800/95 via-teal-900/95 to-slate-900/95">
+              <div className="flex items-center gap-2.5">
+                <Icon name="spark" size={18} className="text-teal-300" />
                 <div>
                   <h2 className="text-xs font-bold uppercase tracking-wider">
                     Dentarith AI Clinical Intelligence
                   </h2>
                   <p className="text-[10px] text-teal-100/90">
-                    Preserved original diagnostic hypotheses &bull; Assistive only &bull; Non-autonomous
+                    Preserved diagnostic hypotheses &bull; Assistive only &bull; Licensed clinician retains final diagnosis
                   </p>
                 </div>
               </div>
-              <span className="glass-chip rounded-full bg-teal-700/80 px-2.5 py-0.5 text-[10px] font-semibold text-white border border-teal-500/40 shadow-xs">
-                AI Output (Preserved)
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="glass-chip rounded-full bg-teal-700/80 px-2.5 py-0.5 text-[10px] font-semibold text-white border border-teal-500/40 shadow-xs">
+                  AI Differential Output
+                </span>
+              </div>
             </div>
             <AnalysisView analysis={analysis} />
           </div>
@@ -463,7 +519,7 @@ export function CaseDetailContent({
             <button
               onClick={handleReanalyze}
               disabled={isReanalyzing}
-              className="glass-button glass-shine mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:opacity-50 shadow-xs"
+              className="glass-pill glass-shine mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800 disabled:opacity-50 shadow-xs"
             >
               <Icon name="spark" size={15} />
               {isReanalyzing ? "Analyzing..." : "Analyze with Dentarith"}
@@ -474,7 +530,7 @@ export function CaseDetailContent({
         {/* Delete Confirmation Modal */}
         {showDeleteModal && (
           <div className="glass-modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="glass-modal-content glass-card w-full max-w-md p-6 shadow-2xl">
+            <div className="glass-modal-content glass-panel w-full max-w-md p-6 shadow-2xl">
               <div className="flex items-center gap-3 text-red-600">
                 <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 font-bold border border-red-200">
                   !
@@ -490,14 +546,14 @@ export function CaseDetailContent({
                 <button
                   type="button"
                   onClick={() => setShowDeleteModal(false)}
-                  className="glass-button rounded-lg border border-slate-300/80 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white shadow-xs"
+                  className="glass-pill rounded-lg border border-slate-300/80 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white shadow-xs"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="glass-button rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-red-700"
+                  className="glass-pill rounded-lg bg-red-600 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-red-700"
                 >
                   Delete Case
                 </button>
@@ -530,61 +586,174 @@ function AnalysisView({
     <div className="space-y-6">
       {/* Clinical Case Summary */}
       <section className="glass-card p-5 shadow-xs sm:p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-800">
-          Clinical Reasoning Summary
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-slate-700">{analysis.summary}</p>
+        <div className="flex items-center gap-2 text-teal-800">
+          <Icon name="spark" size={16} />
+          <h2 className="text-xs font-bold uppercase tracking-wider">
+            Clinical Reasoning Summary
+          </h2>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-slate-800 sm:text-sm">
+          {analysis.summary}
+        </p>
       </section>
 
-      {/* Information Categorization */}
-      <section className="grid gap-4 sm:grid-cols-3">
-        <div className="glass-card-subtle rounded-xl border border-slate-200/80 p-4 shadow-xs">
+      {/* Observation vs. Interpretation Split */}
+      <section className="space-y-2">
+        <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-blue-500 shadow-xs" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">Reported Information</h3>
+            <span className="flex h-2 w-2 rounded-full bg-teal-600" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+              Observation vs. AI Interpretation Split
+            </h3>
           </div>
-          <ul className="mt-3 space-y-1 text-xs text-slate-600">
-            {analysis.reportedInformation.map((r, i) => (
-              <li key={`rep-${i}`}>• {r}</li>
-            ))}
-          </ul>
+          <span className="text-[10px] text-slate-500 font-medium">
+            Raw Findings vs. Synthesized Reasoning
+          </span>
         </div>
-        <div className="glass-card-subtle rounded-xl border border-slate-200/80 p-4 shadow-xs">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-xs" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">Observed Findings</h3>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          {/* Left Column: Objective Clinical Observations */}
+          <div className="glass-card rounded-2xl border-2 border-slate-200/90 p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-200/70 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-100 text-teal-800 text-xs font-bold">
+                  ✓
+                </span>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+                    Ground-Truth Observations
+                  </h4>
+                  <p className="text-[10px] text-slate-500">
+                    Patient-reported history &amp; clinician objective exam findings
+                  </p>
+                </div>
+              </div>
+              <span className="glass-chip rounded-full bg-slate-100/90 px-2 py-0.5 text-[9px] font-bold text-slate-700">
+                Direct Findings
+              </span>
+            </div>
+
+            {/* Reported Information */}
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                Patient Reported Information ({analysis.reportedInformation.length})
+              </span>
+              <ul className="mt-2 space-y-1.5 text-xs">
+                {analysis.reportedInformation.map((r, i) => (
+                  <li
+                    key={`rep-${i}`}
+                    className="glass-card-subtle flex items-start gap-2 rounded-lg p-2 text-slate-700"
+                  >
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" />
+                    <span>{r}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Observed Findings */}
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                Clinician Observed Exam Findings ({analysis.observedFindings.length})
+              </span>
+              <ul className="mt-2 space-y-1.5 text-xs">
+                {analysis.observedFindings.map((o, i) => (
+                  <li
+                    key={`obs-${i}`}
+                    className="glass-card-subtle flex items-start gap-2 rounded-lg p-2 text-slate-800 font-medium"
+                  >
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-600" />
+                    <span>{o}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
-          <ul className="mt-3 space-y-1 text-xs text-slate-600">
-            {analysis.observedFindings.map((o, i) => (
-              <li key={`obs-${i}`}>• {o}</li>
-            ))}
-          </ul>
-        </div>
-        <div className="glass-card-subtle rounded-xl border border-slate-200/80 p-4 shadow-xs">
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-purple-500 shadow-xs" />
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">Inferred Deductions</h3>
+
+          {/* Right Column: AI Synthesized Clinical Interpretations */}
+          <div className="glass-card glass-tint-indigo rounded-2xl border-2 border-indigo-200/90 p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-indigo-100/80 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 text-indigo-700 text-xs font-bold">
+                  <Icon name="spark" size={13} />
+                </span>
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-950">
+                    AI Clinical Interpretations
+                  </h4>
+                  <p className="text-[10px] text-indigo-900/70">
+                    Diagnostic inferences &bull; Inferred clinical deductions
+                  </p>
+                </div>
+              </div>
+              <span className="glass-chip rounded-full bg-indigo-100/90 px-2 py-0.5 text-[9px] font-bold text-indigo-800 border border-indigo-200/80">
+                Machine Inferred
+              </span>
+            </div>
+
+            {/* Inferred Findings */}
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-900">
+                Inferred Deductions ({analysis.inferredFindings.length})
+              </span>
+              <ul className="mt-2 space-y-1.5 text-xs">
+                {analysis.inferredFindings.map((inf, i) => (
+                  <li
+                    key={`inf-${i}`}
+                    className="glass-card-subtle flex items-start gap-2 rounded-lg p-2.5 text-indigo-950 font-medium border border-indigo-100/90"
+                  >
+                    <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-600" />
+                    <span>{inf}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Analytical Note */}
+            <div className="rounded-xl border border-indigo-200/80 bg-white/70 p-3 text-[11px] text-indigo-950 leading-relaxed shadow-xs">
+              <span className="font-bold">Interpretation Governance:</span> Inferences represent probabilistic deductions synthesized from recorded clinical tests. Unrecorded variables are never assumed negative.
+            </div>
           </div>
-          <ul className="mt-3 space-y-1 text-xs text-slate-600">
-            {analysis.inferredFindings.map((inf, i) => (
-              <li key={`inf-${i}`}>• {inf}</li>
-            ))}
-          </ul>
         </div>
       </section>
 
       {/* Clinical Contradictions (if any) */}
       {analysis.contradictions && analysis.contradictions.length > 0 && (
-        <section className="glass-card glass-tint-rose rounded-xl border-2 border-rose-300/80 p-5 shadow-xs">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-rose-950">
-            Contradictions &amp; Inconsistencies Detected
-          </h2>
-          <div className="mt-3 space-y-2">
+        <section className="glass-card glass-tint-rose rounded-2xl border-2 border-rose-300/80 p-5 shadow-sm">
+          <div className="flex items-center gap-2 text-rose-950">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-rose-200 text-xs font-bold text-rose-900">
+              !
+            </span>
+            <div>
+              <h2 className="text-xs font-bold uppercase tracking-wider">
+                Diagnostic Inconsistencies &amp; Contradictions Detected
+              </h2>
+              <p className="text-[10px] text-rose-900/80">
+                Conflicts between reported symptoms, physical examination tests, and expected pathology
+              </p>
+            </div>
+          </div>
+          <div className="mt-3.5 space-y-2.5">
             {analysis.contradictions.map((c, i) => (
-              <div key={`c-${i}`} className="glass-card-subtle rounded-lg p-3 text-xs border border-rose-200/90 shadow-xs">
-                <p><span className="font-bold text-slate-800">Finding:</span> {c.finding}</p>
-                <p className="mt-1 text-rose-950"><span className="font-bold">Conflict:</span> {c.conflict}</p>
-                <p className="mt-0.5 text-slate-600"><span className="font-bold">Clinical Impact:</span> {c.clinicalImpact}</p>
+              <div
+                key={`c-${i}`}
+                className="glass-card rounded-xl border border-rose-200/90 p-3.5 text-xs space-y-1.5 shadow-xs"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Finding:
+                  </span>
+                  <span className="font-bold text-slate-900">{c.finding}</span>
+                </div>
+                <div className="flex items-start gap-2 rounded-lg bg-rose-50/80 p-2 text-rose-950 border border-rose-100">
+                  <span className="text-[10px] font-bold uppercase tracking-wider shrink-0 text-rose-900">
+                    Conflict:
+                  </span>
+                  <span className="font-medium">{c.conflict}</span>
+                </div>
+                <p className="text-[11px] text-slate-600 pl-1">
+                  <strong className="text-slate-800">Clinical Impact:</strong> {c.clinicalImpact}
+                </p>
               </div>
             ))}
           </div>
@@ -593,43 +762,94 @@ function AnalysisView({
 
       {/* Leading Diagnostic Consideration */}
       {leadingDiagnosis && (
-        <section className="glass-card glass-tint-teal rounded-xl border-2 border-teal-600/70 p-5 shadow-sm sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-teal-200/60 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="glass-chip rounded-full bg-teal-700 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white shadow-xs">
-                Rank #{leadingDiagnosis.rank} — Leading Consideration
+        <section className="glass-card glass-tint-teal rounded-2xl border-2 border-teal-500/80 p-5 shadow-md sm:p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-teal-200/70 pb-4">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="glass-chip rounded-full bg-teal-700 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-xs">
+                Rank #{leadingDiagnosis.rank} &bull; Primary Consideration
               </span>
-              <h3 className="text-base font-bold text-slate-950">{leadingDiagnosis.diagnosis}</h3>
+              <h3 className="text-lg font-bold text-slate-950 sm:text-xl">
+                {leadingDiagnosis.diagnosis}
+              </h3>
             </div>
             <div className="flex items-center gap-2">
-              <span className="glass-chip rounded-full border border-amber-300 bg-amber-50/90 px-2.5 py-0.5 text-[10px] font-semibold text-amber-900 capitalize shadow-xs">
-                {leadingDiagnosis.diagnosticCategory}
-              </span>
-              <span className="glass-chip rounded-full border border-teal-300 bg-teal-100/90 px-2.5 py-0.5 text-[10px] font-semibold text-teal-900 capitalize shadow-xs">
-                {leadingDiagnosis.likelihood} likelihood
-              </span>
+              <CategoryBadge category={leadingDiagnosis.diagnosticCategory} />
+              <LikelihoodBadge likelihood={leadingDiagnosis.likelihood} />
             </div>
           </div>
 
-          <div className="mt-4 space-y-2.5 text-xs text-slate-700">
+          <div className="mt-4 space-y-3.5 text-xs text-slate-700">
+            {/* Specular Callout for whyRanksHighest */}
             {leadingDiagnosis.whyRanksHighest && (
-              <div className="glass-card-subtle rounded-lg border border-teal-200/80 p-3 shadow-xs">
-                <span className="font-bold text-teal-950">Why It Ranks Highest: </span>
-                <span>{leadingDiagnosis.whyRanksHighest}</span>
+              <div className="glass-card rounded-xl border border-teal-300/90 bg-teal-50/70 p-4 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.7)] text-teal-950">
+                <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-teal-900">
+                  <Icon name="spark" size={14} className="text-teal-700" />
+                  <span>Primary Differential Justification (Why It Ranks Highest)</span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed font-semibold text-teal-950">
+                  {leadingDiagnosis.whyRanksHighest}
+                </p>
               </div>
             )}
-            <p><span className="font-bold text-slate-900">Clinical Reasoning: </span>{leadingDiagnosis.reasoning}</p>
-            <p><span className="font-bold text-slate-900">Diagnostic Uncertainty: </span><span className="text-slate-600">{leadingDiagnosis.confidenceReason}</span></p>
-            {leadingDiagnosis.supportingFindings.length > 0 && (
-              <p><span className="font-bold text-emerald-800">Supporting Evidence (Findings For): </span>{leadingDiagnosis.supportingFindings.join("; ")}</p>
-            )}
-            <p>
-              <span className="font-bold text-slate-900">Evidence Against / Contradicting Findings: </span>
-              {leadingDiagnosis.contradictingFindings && leadingDiagnosis.contradictingFindings.length > 0 ? (
-                <span className="text-red-700 font-semibold">{leadingDiagnosis.contradictingFindings.join("; ")}</span>
-              ) : (
-                <span className="text-slate-500 italic">None identified in recorded presentation</span>
-              )}
+
+            <div className="glass-card-subtle rounded-xl p-3.5 border border-slate-200/80 space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                Clinical Reasoning Rationale
+              </span>
+              <p className="text-xs leading-relaxed text-slate-800">
+                {leadingDiagnosis.reasoning}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              {/* Supporting Evidence Chips */}
+              <div className="glass-card-subtle rounded-xl p-3 border border-emerald-200/80 bg-emerald-50/40">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-900">
+                  Supporting Evidence (Findings For)
+                </span>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {leadingDiagnosis.supportingFindings.length > 0 ? (
+                    leadingDiagnosis.supportingFindings.map((finding, idx) => (
+                      <span
+                        key={`sup-${idx}`}
+                        className="glass-chip rounded-full bg-emerald-100/90 border border-emerald-300/80 px-2 py-0.5 text-[10px] font-semibold text-emerald-950 shadow-xs"
+                      >
+                        ✓ {finding}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[11px] text-slate-500 italic">None recorded</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Contradicting Evidence Chips */}
+              <div className="glass-card-subtle rounded-xl p-3 border border-rose-200/80 bg-rose-50/40">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-rose-900">
+                  Contradicting Findings (Evidence Against)
+                </span>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {leadingDiagnosis.contradictingFindings && leadingDiagnosis.contradictingFindings.length > 0 ? (
+                    leadingDiagnosis.contradictingFindings.map((finding, idx) => (
+                      <span
+                        key={`contra-${idx}`}
+                        className="glass-chip rounded-full bg-rose-100/90 border border-rose-300/80 px-2 py-0.5 text-[10px] font-semibold text-rose-950 shadow-xs"
+                      >
+                        ✕ {finding}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[11px] text-slate-500 italic">
+                      None identified in recorded presentation
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-600 pl-1">
+              <strong className="text-slate-800">Diagnostic Uncertainty &amp; Nuance: </strong>
+              <span>{leadingDiagnosis.confidenceReason}</span>
             </p>
           </div>
         </section>
@@ -638,29 +858,56 @@ function AnalysisView({
       {/* Secondary Diagnoses */}
       {secondaryDiagnoses.length > 0 && (
         <section className="space-y-3">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-            Secondary Considerations
-          </h3>
-          <div className="space-y-2">
+          <div className="flex items-center gap-2 px-1">
+            <span className="flex h-2 w-2 rounded-full bg-slate-400" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
+              Secondary Considerations ({secondaryDiagnoses.length})
+            </h3>
+          </div>
+          <div className="space-y-2.5">
             {secondaryDiagnoses.map((sec, idx) => (
-              <div key={`sec-${idx}`} className="glass-card rounded-lg border border-slate-200/80 p-4 text-xs space-y-1.5 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-slate-900">Rank #{sec.rank}: {sec.diagnosis}</h4>
-                  <span className="glass-chip rounded-full bg-slate-100/90 px-2 py-0.5 text-[10px] font-semibold text-slate-700 border border-slate-200/80 shadow-xs">
-                    {sec.diagnosticCategory} • {sec.likelihood}
-                  </span>
+              <div
+                key={`sec-${idx}`}
+                className="glass-card rounded-xl border border-slate-200/80 p-4 text-xs space-y-2 shadow-xs"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="glass-chip rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-800">
+                      Rank #{sec.rank}
+                    </span>
+                    <h4 className="font-bold text-slate-950 text-sm">{sec.diagnosis}</h4>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CategoryBadge category={sec.diagnosticCategory} />
+                    <LikelihoodBadge likelihood={sec.likelihood} />
+                  </div>
                 </div>
-                <p className="text-slate-700"><span className="font-semibold text-slate-900">Reasoning: </span>{sec.reasoning}</p>
-                {sec.supportingFindings && sec.supportingFindings.length > 0 && (
-                  <p className="text-emerald-800"><span className="font-semibold">Supporting Evidence: </span>{sec.supportingFindings.join("; ")}</p>
-                )}
-                <p className="text-slate-700">
-                  <span className="font-semibold text-slate-900">Evidence Against: </span>
-                  {sec.contradictingFindings && sec.contradictingFindings.length > 0
-                    ? sec.contradictingFindings.join("; ")
-                    : "None identified"}
+
+                <p className="text-slate-700 leading-relaxed">
+                  <strong className="text-slate-900">Reasoning: </strong>
+                  {sec.reasoning}
                 </p>
-                <p className="text-slate-600"><span className="font-semibold text-slate-900">Uncertainty: </span>{sec.confidenceReason}</p>
+
+                {/* Chips for supporting and contradicting */}
+                <div className="flex flex-wrap gap-2 pt-1 text-[11px]">
+                  {sec.supportingFindings && sec.supportingFindings.length > 0 && (
+                    <div className="flex items-center gap-1 text-emerald-800">
+                      <span className="font-semibold">Supporting:</span>
+                      <span>{sec.supportingFindings.join("; ")}</span>
+                    </div>
+                  )}
+                  {sec.contradictingFindings && sec.contradictingFindings.length > 0 && (
+                    <div className="flex items-center gap-1 text-rose-800">
+                      <span className="font-semibold">Against:</span>
+                      <span>{sec.contradictingFindings.join("; ")}</span>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-[11px] text-slate-500">
+                  <strong>Uncertainty: </strong>
+                  {sec.confidenceReason}
+                </p>
               </div>
             ))}
           </div>
@@ -669,18 +916,33 @@ function AnalysisView({
 
       {/* Evidence Map */}
       {combinedEvidenceMap.length > 0 && (
-        <section className="glass-card rounded-xl p-5 shadow-xs sm:p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-800">
-            Evidence Map: Finding → Interpretation → Relevance
-          </h2>
-          <div className="mt-3 space-y-2">
+        <section className="glass-card rounded-2xl p-5 shadow-xs sm:p-6">
+          <div className="flex items-center gap-2 text-teal-800">
+            <Icon name="chart" size={16} />
+            <h2 className="text-xs font-bold uppercase tracking-wider">
+              Evidence Map: Finding &rarr; Interpretation &rarr; Diagnostic Relevance
+            </h2>
+          </div>
+          <div className="mt-3.5 space-y-2">
             {combinedEvidenceMap.map((mapItem, idx) => (
-              <div key={`m-${idx}`} className="glass-card-subtle flex flex-col gap-2 rounded-lg border border-slate-200/80 p-3 text-xs sm:flex-row sm:items-center sm:justify-between shadow-xs">
-                <div className="flex-1"><span className="text-[10px] font-bold text-slate-500 uppercase">Finding</span><p className="font-semibold text-slate-900">{mapItem.finding}</p></div>
-                <span className="hidden text-teal-700 sm:block">→</span>
-                <div className="flex-1"><span className="text-[10px] font-bold text-teal-700 uppercase">Interpretation</span><p className="text-slate-800">{mapItem.interpretation}</p></div>
-                <span className="hidden text-teal-700 sm:block">→</span>
-                <div className="flex-1"><span className="text-[10px] font-bold text-indigo-700 uppercase">Relevance</span><p className="text-slate-700">{mapItem.diagnosticRelevance}</p></div>
+              <div
+                key={`m-${idx}`}
+                className="glass-card-subtle flex flex-col gap-2 rounded-xl border border-slate-200/80 p-3 text-xs sm:flex-row sm:items-center sm:justify-between shadow-xs"
+              >
+                <div className="flex-1">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Finding</span>
+                  <p className="font-semibold text-slate-950">{mapItem.finding}</p>
+                </div>
+                <span className="hidden text-teal-700 font-bold sm:block">&rarr;</span>
+                <div className="flex-1">
+                  <span className="text-[9px] font-bold text-teal-700 uppercase tracking-wider">Interpretation</span>
+                  <p className="text-slate-800">{mapItem.interpretation}</p>
+                </div>
+                <span className="hidden text-teal-700 font-bold sm:block">&rarr;</span>
+                <div className="flex-1">
+                  <span className="text-[9px] font-bold text-indigo-700 uppercase tracking-wider">Relevance</span>
+                  <p className="text-slate-700">{mapItem.diagnosticRelevance}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -688,15 +950,20 @@ function AnalysisView({
       )}
 
       {/* Differentials */}
-      <section className="glass-card rounded-xl p-5 shadow-xs sm:p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-800">
-          Differential Diagnoses (To Rule In/Out)
+      <section className="glass-card rounded-2xl p-5 shadow-xs sm:p-6">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-teal-800">
+          Differential Diagnoses (To Rule In / Rule Out)
         </h2>
-        <div className="mt-3 space-y-2.5">
+        <div className="mt-3.5 space-y-3">
           {analysis.differentialDiagnosis.map((item, idx) => (
-            <div key={`diff-${idx}`} className="glass-card-subtle rounded-lg border border-slate-200/80 p-3.5 text-xs space-y-1 shadow-xs">
-              <h4 className="font-bold text-slate-900">{item.diagnosis}</h4>
-              <p className="text-slate-700"><span className="font-semibold">Why considered:</span> {item.whyConsidered}</p>
+            <div
+              key={`diff-${idx}`}
+              className="glass-card-subtle rounded-xl border border-slate-200/80 p-4 text-xs space-y-1.5 shadow-xs"
+            >
+              <h4 className="font-bold text-slate-950 text-sm">{item.diagnosis}</h4>
+              <p className="text-slate-700 leading-relaxed">
+                <span className="font-semibold text-slate-900">Why considered:</span> {item.whyConsidered}
+              </p>
               {(item.supportingEvidence?.length > 0 || item.supportingFindings?.length > 0) && (
                 <p className="text-emerald-800">
                   <span className="font-semibold">Supporting Evidence: </span>
@@ -704,7 +971,7 @@ function AnalysisView({
                 </p>
               )}
               {item.evidenceAgainst && item.evidenceAgainst.length > 0 && (
-                <p className="text-red-700 font-medium">
+                <p className="text-rose-700 font-medium">
                   <span className="font-semibold">Evidence Against: </span>
                   {item.evidenceAgainst.join("; ")}
                 </p>
@@ -716,7 +983,9 @@ function AnalysisView({
                 </p>
               )}
               {item.whatWouldChangeRanking && (
-                <p className="text-indigo-900"><span className="font-semibold">What would change ranking:</span> {item.whatWouldChangeRanking}</p>
+                <p className="text-indigo-900 font-medium">
+                  <span className="font-semibold">What would change ranking:</span> {item.whatWouldChangeRanking}
+                </p>
               )}
             </div>
           ))}
@@ -725,28 +994,66 @@ function AnalysisView({
 
       {/* Prioritized Missing Information & Suggested Investigations */}
       <div className="grid gap-4 md:grid-cols-2">
-        <section className="glass-card rounded-xl p-5 shadow-xs">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-            Missing Information Prioritization
-          </h2>
+        <section className="glass-card rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-amber-500" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+              Prioritized Missing Information
+            </h2>
+          </div>
           <ul className="mt-3 space-y-2 text-xs">
-            {analysis.missingInformation.map((item, idx) => (
-              <li key={`mi-${idx}`} className="border-l-2 border-amber-500 pl-2">
-                <span className="font-semibold text-slate-900">{item.item}</span>
-                <span className="ml-1 text-[10px] font-bold uppercase text-amber-800">({item.importance})</span>
-                <p className="text-[11px] text-slate-500">{item.whyItMatters}</p>
-              </li>
-            ))}
+            {analysis.missingInformation.map((item, idx) => {
+              const badgeClass =
+                item.importance === "critical"
+                  ? "border-rose-300 bg-rose-100 text-rose-900"
+                  : item.importance === "important"
+                  ? "border-amber-300 bg-amber-100 text-amber-900"
+                  : "border-slate-300 bg-slate-100 text-slate-800";
+              const borderAccent =
+                item.importance === "critical"
+                  ? "border-l-rose-500"
+                  : item.importance === "important"
+                  ? "border-l-amber-500"
+                  : "border-l-slate-400";
+
+              return (
+                <li
+                  key={`mi-${idx}`}
+                  className={`glass-card-subtle rounded-r-lg border-l-4 ${borderAccent} p-2.5 shadow-xs`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-semibold text-slate-950">{item.item}</span>
+                    <span
+                      className={`glass-chip rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase ${badgeClass}`}
+                    >
+                      {item.importance}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500 leading-relaxed">
+                    {item.whyItMatters}
+                  </p>
+                </li>
+              );
+            })}
           </ul>
         </section>
 
-        <section className="glass-card rounded-xl p-5 shadow-xs">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-            Suggested Investigations
-          </h2>
-          <ul className="mt-3 space-y-1.5 text-xs text-slate-700">
+        <section className="glass-card rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-teal-500" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
+              Suggested Investigations
+            </h2>
+          </div>
+          <ul className="mt-3 space-y-2 text-xs text-slate-800">
             {analysis.suggestedInvestigations.map((inv, idx) => (
-              <li key={`inv-${idx}`}>• {inv}</li>
+              <li
+                key={`inv-${idx}`}
+                className="glass-card-subtle flex items-start gap-2 rounded-lg p-2.5 shadow-xs"
+              >
+                <span className="text-teal-700 font-bold">&bull;</span>
+                <span>{inv}</span>
+              </li>
             ))}
           </ul>
         </section>
@@ -754,55 +1061,68 @@ function AnalysisView({
 
       {/* Decision-Changing Evidence */}
       {analysis.decisionChangingEvidence && analysis.decisionChangingEvidence.length > 0 && (
-        <section className="glass-card glass-tint-indigo rounded-xl border border-indigo-200/80 p-5 shadow-xs">
+        <section className="glass-card glass-tint-indigo rounded-2xl border border-indigo-200/80 p-5 shadow-xs">
           <h2 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
             Decision-Changing Evidence (&ldquo;What Would Change My Mind?&rdquo;)
           </h2>
-          <ul className="mt-2 space-y-1 text-xs text-indigo-950">
+          <ul className="mt-2.5 space-y-1.5 text-xs text-indigo-950 font-medium">
             {analysis.decisionChangingEvidence.map((dce, idx) => (
-              <li key={`dce-${idx}`}>• {dce}</li>
+              <li key={`dce-${idx}`} className="flex items-start gap-2">
+                <span className="text-indigo-600 font-bold">&bull;</span>
+                <span>{dce}</span>
+              </li>
             ))}
           </ul>
         </section>
       )}
 
       {/* Treatment Considerations */}
-      <section className="glass-card rounded-xl p-5 shadow-xs">
+      <section className="glass-card rounded-2xl p-5 shadow-xs">
         <h2 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-          Treatment Considerations (Not Autonomous Orders)
+          Treatment Considerations (Assistive Recommendations &bull; Not Autonomous Orders)
         </h2>
-        <ul className="mt-2 space-y-1 text-xs text-slate-700">
+        <ul className="mt-3 space-y-1.5 text-xs text-slate-700">
           {analysis.treatmentConsiderations.map((tx, idx) => (
-            <li key={`tx-${idx}`}>• {tx}</li>
+            <li
+              key={`tx-${idx}`}
+              className="glass-card-subtle flex items-start gap-2 rounded-lg p-2 text-slate-800 font-medium"
+            >
+              <span className="text-teal-700 font-bold">&bull;</span>
+              <span>{tx}</span>
+            </li>
           ))}
         </ul>
       </section>
 
-      {/* Red Flags & Uncertainty */}
+      {/* Red Flags & Urgent Alerts */}
       {analysis.redFlags.length > 0 && (
-        <section className="glass-card glass-tint-rose rounded-xl border border-rose-300/80 p-4 text-xs text-rose-950 shadow-xs">
-          <h2 className="font-bold uppercase tracking-wider">Red Flags &amp; Urgent Alerts</h2>
-          <ul className="mt-1 space-y-1">
+        <section className="glass-card glass-tint-rose rounded-2xl border border-rose-300/80 p-5 text-xs text-rose-950 shadow-xs">
+          <h2 className="font-bold uppercase tracking-wider text-rose-950">
+            Red Flags &amp; Urgent Clinical Alerts
+          </h2>
+          <ul className="mt-2 space-y-1 font-medium">
             {analysis.redFlags.map((rf, idx) => (
-              <li key={`rf-${idx}`}>• {rf}</li>
+              <li key={`rf-${idx}`}>&bull; {rf}</li>
             ))}
           </ul>
         </section>
       )}
 
       {/* Uncertainty Factors */}
-      <section className="glass-card glass-tint-amber rounded-xl border-2 border-dashed border-amber-300/80 p-5 text-xs text-amber-950 shadow-xs">
-        <h2 className="font-bold uppercase tracking-wider">Diagnostic Uncertainty &amp; Limitations</h2>
-        <ul className="mt-2 space-y-1 text-amber-950">
+      <section className="glass-card glass-tint-amber rounded-2xl border-2 border-dashed border-amber-300/80 p-5 text-xs text-amber-950 shadow-xs">
+        <h2 className="font-bold uppercase tracking-wider text-amber-950">
+          Diagnostic Uncertainty &amp; Limitations
+        </h2>
+        <ul className="mt-2 space-y-1 text-amber-900 font-medium">
           {analysis.uncertainty.map((unc, idx) => (
-            <li key={`unc-${idx}`}>• {unc}</li>
+            <li key={`unc-${idx}`}>&bull; {unc}</li>
           ))}
         </ul>
       </section>
 
       {/* Safety Notice */}
-      <div className="glass-card-subtle glass-tint-teal rounded-xl border border-teal-200/80 p-4 text-xs text-teal-950 shadow-xs">
-        <p className="leading-5">
+      <div className="glass-card-subtle glass-tint-teal rounded-2xl border border-teal-200/80 p-4 text-xs text-teal-950 shadow-xs">
+        <p className="leading-relaxed">
           <span className="font-bold">Clinical Safety Notice:</span> Dentarith provides clinical decision support only. It does not replace professional clinical judgment. The treating dental professional must independently verify findings, tests, and recommendations.
         </p>
       </div>

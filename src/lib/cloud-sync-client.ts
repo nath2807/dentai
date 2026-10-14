@@ -2,7 +2,7 @@ import { userProfileSchema, type UserProfile, type LoginRequest, type RegisterRe
 import { migrationResponseSchema, syncBatchResponseSchema, type CloudCaseRecord, type CloudSyncStatus,
   type MigrationResult, type MigrationStrategy, type SyncBatchResponse, type SyncPushItem } from "./cloud-types";
 import { acknowledgeDeletedCase, applySyncedCase, exportCaseRecords, getCases, getUnassignedCases,
-  getWorkspaceRecords, retainSyncConflict, type StoredCase } from "./case-storage";
+  getWorkspaceRecords, retainSyncConflict } from "./case-storage";
 import { assertWorkspaceCurrent, getWorkspaceUserId, setWorkspaceUserId, subscribeWorkspace, workspaceStorageKey } from "./browser-workspace";
 
 export interface SyncClientState {

@@ -446,26 +446,30 @@ export function PeriodontalChart({
                       const label = SITE_LABELS[siteKey];
                       const measurement = currentToothRecord.sites?.[siteKey] || createEmptySiteMeasurement();
                       const risk = getSiteRiskSeverity(measurement.probingDepth);
+                      const isPdRecorded = measurement.probingDepth !== null && measurement.probingDepth !== undefined;
+                      const isGmRecorded = measurement.gingivalMargin !== null && measurement.gingivalMargin !== undefined;
 
                       return (
                         <div
                           key={siteKey}
-                          className={`rounded-lg border p-2.5 transition ${
+                          className={`rounded-xl border p-2.5 transition-all backdrop-blur-md ${
                             risk === "deep_pocket"
-                              ? "border-rose-300 bg-rose-50/40"
+                              ? "border-rose-300/90 bg-rose-50/70 shadow-xs ring-1 ring-rose-500/20"
                               : risk === "mild_pocket"
-                              ? "border-amber-300 bg-amber-50/40"
-                              : "border-slate-200 bg-slate-50/30"
+                              ? "border-amber-300/90 bg-amber-50/70 shadow-xs ring-1 ring-amber-500/20"
+                              : isPdRecorded
+                              ? "border-slate-200/90 bg-white/80 shadow-xs"
+                              : "border-dashed border-slate-200 bg-slate-50/40"
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-800 text-xs">{label.short}</span>
-                            <span className="text-[10px] text-slate-500">{label.name}</span>
+                            <span className="font-bold text-slate-900 text-xs">{label.short}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">{label.name}</span>
                           </div>
 
                           {/* PD Input */}
                           <div className="mt-2">
-                            <label className="text-[10px] font-bold text-slate-600 block">
+                            <label className="text-[10px] font-bold text-slate-700 block">
                               PD (mm)
                             </label>
                             <input
@@ -475,21 +479,23 @@ export function PeriodontalChart({
                               disabled={readOnly}
                               placeholder="—"
                               value={
-                                measurement.probingDepth !== null && measurement.probingDepth !== undefined
-                                  ? measurement.probingDepth
-                                  : ""
+                                isPdRecorded ? measurement.probingDepth! : ""
                               }
                               onChange={(e) => {
                                 const val = e.target.value === "" ? null : Number(e.target.value);
                                 handleSiteChange(siteKey, "probingDepth", val);
                               }}
-                              className="mt-0.5 h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-900 focus:border-teal-600 focus:outline-hidden disabled:bg-slate-100"
+                              className={`mt-0.5 h-8.5 w-full rounded-lg px-2 text-center text-xs font-black transition-all ${
+                                isPdRecorded
+                                  ? "glass-input-recorded text-slate-950"
+                                  : "glass-input-unrecorded text-slate-400"
+                              } focus:outline-hidden disabled:opacity-60`}
                             />
                           </div>
 
                           {/* GM Input */}
                           <div className="mt-2">
-                            <label className="text-[10px] font-bold text-slate-600 block" title="+ = Recession, - = Overgrowth">
+                            <label className="text-[10px] font-bold text-slate-700 block" title="+ = Recession, - = Overgrowth">
                               GM (mm)
                             </label>
                             <input
@@ -499,22 +505,24 @@ export function PeriodontalChart({
                               disabled={readOnly}
                               placeholder="0"
                               value={
-                                measurement.gingivalMargin !== null && measurement.gingivalMargin !== undefined
-                                  ? measurement.gingivalMargin
-                                  : ""
+                                isGmRecorded ? measurement.gingivalMargin! : ""
                               }
                               onChange={(e) => {
                                 const val = e.target.value === "" ? null : Number(e.target.value);
                                 handleSiteChange(siteKey, "gingivalMargin", val);
                               }}
-                              className="mt-0.5 h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-medium text-slate-700 focus:border-teal-600 focus:outline-hidden disabled:bg-slate-100"
+                              className={`mt-0.5 h-8.5 w-full rounded-lg px-2 text-center text-xs font-semibold transition-all ${
+                                isGmRecorded
+                                  ? "glass-input-recorded text-slate-900"
+                                  : "glass-input-unrecorded text-slate-400"
+                              } focus:outline-hidden disabled:opacity-60`}
                             />
                           </div>
 
                           {/* Calculated CAL */}
                           <div className="mt-2 flex items-center justify-between text-[11px]">
                             <span className="text-slate-500 font-medium">CAL:</span>
-                            <span className="font-bold text-slate-800">
+                            <span className="font-extrabold text-slate-900">
                               {formatCAL(measurement.clinicalAttachmentLevel)}
                             </span>
                           </div>
@@ -580,28 +588,32 @@ export function PeriodontalChart({
                       const label = SITE_LABELS[siteKey];
                       const measurement = currentToothRecord.sites?.[siteKey] || createEmptySiteMeasurement();
                       const risk = getSiteRiskSeverity(measurement.probingDepth);
+                      const isPdRecorded = measurement.probingDepth !== null && measurement.probingDepth !== undefined;
+                      const isGmRecorded = measurement.gingivalMargin !== null && measurement.gingivalMargin !== undefined;
 
                       return (
                         <div
                           key={siteKey}
-                          className={`rounded-lg border p-2.5 transition ${
+                          className={`rounded-xl border p-2.5 transition-all backdrop-blur-md ${
                             risk === "deep_pocket"
-                              ? "border-rose-300 bg-rose-50/40"
+                              ? "border-rose-300/90 bg-rose-50/70 shadow-xs ring-1 ring-rose-500/20"
                               : risk === "mild_pocket"
-                              ? "border-amber-300 bg-amber-50/40"
-                              : "border-slate-200 bg-slate-50/30"
+                              ? "border-amber-300/90 bg-amber-50/70 shadow-xs ring-1 ring-amber-500/20"
+                              : isPdRecorded
+                              ? "border-slate-200/90 bg-white/80 shadow-xs"
+                              : "border-dashed border-slate-200 bg-slate-50/40"
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-slate-800 text-xs">{label.short}</span>
-                            <span className="text-[10px] text-slate-500">
+                            <span className="font-bold text-slate-900 text-xs">{label.short}</span>
+                            <span className="text-[10px] text-slate-500 font-medium">
                               {toothInfo?.arch === "maxillary" ? label.palatalName : label.name}
                             </span>
                           </div>
 
                           {/* PD Input */}
                           <div className="mt-2">
-                            <label className="text-[10px] font-bold text-slate-600 block">
+                            <label className="text-[10px] font-bold text-slate-700 block">
                               PD (mm)
                             </label>
                             <input
@@ -611,21 +623,23 @@ export function PeriodontalChart({
                               disabled={readOnly}
                               placeholder="—"
                               value={
-                                measurement.probingDepth !== null && measurement.probingDepth !== undefined
-                                  ? measurement.probingDepth
-                                  : ""
+                                isPdRecorded ? measurement.probingDepth! : ""
                               }
                               onChange={(e) => {
                                 const val = e.target.value === "" ? null : Number(e.target.value);
                                 handleSiteChange(siteKey, "probingDepth", val);
                               }}
-                              className="mt-0.5 h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-bold text-slate-900 focus:border-teal-600 focus:outline-hidden disabled:bg-slate-100"
+                              className={`mt-0.5 h-8.5 w-full rounded-lg px-2 text-center text-xs font-black transition-all ${
+                                isPdRecorded
+                                  ? "glass-input-recorded text-slate-950"
+                                  : "glass-input-unrecorded text-slate-400"
+                              } focus:outline-hidden disabled:opacity-60`}
                             />
                           </div>
 
                           {/* GM Input */}
                           <div className="mt-2">
-                            <label className="text-[10px] font-bold text-slate-600 block" title="+ = Recession, - = Overgrowth">
+                            <label className="text-[10px] font-bold text-slate-700 block" title="+ = Recession, - = Overgrowth">
                               GM (mm)
                             </label>
                             <input
@@ -635,22 +649,24 @@ export function PeriodontalChart({
                               disabled={readOnly}
                               placeholder="0"
                               value={
-                                measurement.gingivalMargin !== null && measurement.gingivalMargin !== undefined
-                                  ? measurement.gingivalMargin
-                                  : ""
+                                isGmRecorded ? measurement.gingivalMargin! : ""
                               }
                               onChange={(e) => {
                                 const val = e.target.value === "" ? null : Number(e.target.value);
                                 handleSiteChange(siteKey, "gingivalMargin", val);
                               }}
-                              className="mt-0.5 h-8 w-full rounded border border-slate-300 bg-white px-2 text-center text-xs font-medium text-slate-700 focus:border-teal-600 focus:outline-hidden disabled:bg-slate-100"
+                              className={`mt-0.5 h-8.5 w-full rounded-lg px-2 text-center text-xs font-semibold transition-all ${
+                                isGmRecorded
+                                  ? "glass-input-recorded text-slate-900"
+                                  : "glass-input-unrecorded text-slate-400"
+                              } focus:outline-hidden disabled:opacity-60`}
                             />
                           </div>
 
                           {/* Calculated CAL */}
                           <div className="mt-2 flex items-center justify-between text-[11px]">
                             <span className="text-slate-500 font-medium">CAL:</span>
-                            <span className="font-bold text-slate-800">
+                            <span className="font-extrabold text-slate-900">
                               {formatCAL(measurement.clinicalAttachmentLevel)}
                             </span>
                           </div>

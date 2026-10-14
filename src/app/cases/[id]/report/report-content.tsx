@@ -107,7 +107,7 @@ export function ClinicalReportContent({
         <div className="flex items-center gap-3">
           <Link
             href={`/cases/${encodeURIComponent(caseId)}`}
-            className="glass-button inline-flex items-center gap-1.5 rounded-lg border border-slate-300/80 bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white shadow-xs"
+            className="glass-pill inline-flex items-center gap-1.5 rounded-lg border border-slate-300/80 bg-white/70 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-white shadow-xs"
           >
             <Icon name="arrow" size={14} />
             Back to Case
@@ -141,7 +141,7 @@ export function ClinicalReportContent({
         <div className="flex items-center gap-3">
           <button
             onClick={handlePrint}
-            className="glass-button glass-shine inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
+            className="glass-pill glass-shine inline-flex items-center gap-2 rounded-lg bg-teal-700 px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
           >
             <Icon name="report" size={15} />
             Print / Save as PDF

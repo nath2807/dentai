@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { Icon } from "@/components/clinical-ui";
+import { Icon, LiquidGlassSkeleton } from "@/components/clinical-ui";
 import {
   clinicalCaseSchema,
   normalizeClinicalCase,
@@ -81,6 +81,16 @@ export default function CaseForm() {
   const editId = searchParams.get("id");
   const formRef = useRef<HTMLFormElement>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisElapsed, setAnalysisElapsed] = useState(0);
+
+  useEffect(() => {
+    if (!isAnalyzing) return;
+    const interval = setInterval(() => {
+      setAnalysisElapsed((prev) => prev + 1);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isAnalyzing]);
+
   const [fileName, setFileName] = useState("");
   const [radiograph, setRadiograph] = useState<Radiograph | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -345,6 +355,7 @@ export default function CaseForm() {
     }
 
     setErrors({});
+    setAnalysisElapsed(0);
     setIsAnalyzing(true);
     const requestCase = JSON.parse(
       JSON.stringify(result.data, (key, value) => (key === "dataUrl" ? undefined : value))
@@ -433,22 +444,22 @@ export default function CaseForm() {
         </div>
       </div>
 
-      {/* Sticky Section Navigator */}
-      <div className="glass-pill sticky top-20 z-10 -mx-1 mb-6 overflow-x-auto p-2 sm:mx-0 shadow-md">
-        <div className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold">
+      {/* Sticky Section Navigator (Floating iOS-Style Glass Dock) */}
+      <div className="glass-dock sticky top-20 z-20 -mx-1 mb-6 overflow-x-auto p-2 sm:mx-0 shadow-lg ring-1 ring-slate-900/5">
+        <div className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold px-1">
           <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Jump:</span>
-          <a href="#sec-case" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">1. Info</a>
-          <a href="#sec-complaint" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">2. Complaint</a>
-          <a href="#sec-pain" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">3. Pain</a>
-          <a href="#sec-tooth" className="glass-chip rounded-lg px-2.5 py-1 bg-teal-50/90 text-teal-900 font-bold border border-teal-300/80 hover:bg-teal-100 transition shadow-xs">4. Tooth Chart</a>
-          <a href="#sec-pulpal" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">5. Pulpal</a>
-          <a href="#sec-periapical" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">6. Periapical</a>
-          <a href="#sec-periodontal" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">7. Periodontal</a>
-          <a href="#sec-hard-tissue" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">8. Hard Tissue</a>
-          <a href="#sec-medical" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">9. Medical</a>
-          <a href="#sec-dental-history" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">10. Dental History</a>
-          <a href="#sec-investigations" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">11. Investigations</a>
-          <a href="#sec-radiograph" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">12. Radiograph</a>
+          <a href="#sec-case" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">1. Info</a>
+          <a href="#sec-complaint" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">2. Complaint</a>
+          <a href="#sec-pain" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">3. Pain</a>
+          <a href="#sec-tooth" className="glass-chip rounded-xl px-3 py-1.5 bg-teal-500/15 text-teal-950 font-bold border border-teal-500/30 hover:bg-teal-500/25 transition shadow-xs ring-1 ring-teal-500/20">4. Tooth Chart</a>
+          <a href="#sec-pulpal" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">5. Pulpal</a>
+          <a href="#sec-periapical" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">6. Periapical</a>
+          <a href="#sec-periodontal" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">7. Periodontal</a>
+          <a href="#sec-hard-tissue" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">8. Hard Tissue</a>
+          <a href="#sec-medical" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">9. Medical</a>
+          <a href="#sec-dental-history" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">10. Dental History</a>
+          <a href="#sec-investigations" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">11. Investigations</a>
+          <a href="#sec-radiograph" className="glass-chip rounded-xl px-3 py-1.5 text-slate-700 hover:bg-white hover:text-slate-950 transition">12. Radiograph Lightbox</a>
         </div>
       </div>
 
@@ -1009,38 +1020,93 @@ export default function CaseForm() {
         </div>
       </SectionContainer>
 
-      {/* 15. Radiograph Attachment */}
-      <section id="sec-radiograph" className="glass-card p-5 sm:p-7 scroll-mt-24">
-        <div className="flex gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50/90 text-xs font-bold text-teal-800 border border-teal-200/80 shadow-xs">15</span>
-          <div>
-            <h2 className="text-base font-semibold text-slate-950">Radiograph</h2>
-            <p className="mt-1 text-sm leading-5 text-slate-500">Attach an image file if one is available for clinician reference.</p>
+      {/* 15. Radiograph Attachment & Diagnostic Lightbox */}
+      <section id="sec-radiograph" className="glass-lightbox p-6 sm:p-8 scroll-mt-28">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-700/60 pb-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-teal-500/20 text-xs font-bold text-teal-300 border border-teal-500/40 shadow-xs">
+              15
+            </span>
+            <div>
+              <h2 className="text-base font-bold text-white flex items-center gap-2">
+                <span>Radiograph Diagnostic Lightbox</span>
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+              </h2>
+              <p className="mt-0.5 text-xs text-slate-400">Local-only client-side imaging reference. De-identify patient data.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="glass-pill px-3 py-1 bg-emerald-500/15 text-emerald-300 border border-emerald-400/30 text-[10px] font-bold shadow-xs">
+              Local Browser Sandbox
+            </span>
+            <span className="glass-pill px-3 py-1 bg-slate-800/80 text-slate-300 border border-slate-600/40 text-[10px] font-semibold shadow-xs">
+              radiograph: null on AI payloads
+            </span>
           </div>
         </div>
-        <label htmlFor="radiograph" className="mt-6 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-teal-300/80 bg-white/40 px-6 py-8 text-center transition hover:border-teal-500 hover:bg-teal-50/40 backdrop-blur-xs">
+
+        <label
+          htmlFor="radiograph"
+          className="mt-6 flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-700/80 bg-slate-900/60 px-6 py-8 text-center transition-all hover:border-teal-400/70 hover:bg-slate-900/90"
+        >
           {radiograph?.dataUrl ? (
-            <Image src={radiograph.dataUrl} alt={`Preview of ${fileName}`} width={320} height={128} unoptimized className="mb-3 max-h-32 w-auto max-w-full rounded object-contain shadow-xs" />
+            <div className="relative rounded-lg p-2 bg-black/60 border border-slate-700/60 shadow-[0_0_24px_rgba(13,148,136,0.2)]">
+              <Image
+                src={radiograph.dataUrl}
+                alt={`Preview of ${fileName}`}
+                width={360}
+                height={160}
+                unoptimized
+                className="max-h-36 w-auto max-w-full rounded object-contain"
+              />
+            </div>
           ) : (
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-teal-700 shadow-sm border border-teal-100">
-              <Icon name="plus" size={20} />
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-500/20 text-teal-400 shadow-inner border border-teal-500/30">
+              <Icon name="upload" size={22} />
             </span>
           )}
-          <span className="mt-3 text-sm font-semibold text-slate-800">{fileName || "Drop a radiograph here or browse"}</span>
-          <span className="mt-1 text-xs text-slate-500">PNG, JPG up to 10MB</span>
-          <input id="radiograph" type="file" accept="image/png,image/jpeg" className="sr-only" onChange={(e) => handleRadiograph(e.target.files?.[0])} />
+          <span className="mt-3 text-sm font-semibold text-slate-200">
+            {fileName || "Drop radiograph here or browse"}
+          </span>
+          <span className="mt-1 text-xs text-slate-400">PNG, JPG up to 10MB • Preserved in local browser session only</span>
+          <input
+            id="radiograph"
+            type="file"
+            accept="image/png,image/jpeg"
+            className="sr-only"
+            onChange={(e) => handleRadiograph(e.target.files?.[0])}
+          />
         </label>
+
         {radiograph && (
-          <button type="button" onClick={() => { setRadiograph(null); setFileName(""); }} className="mt-3 text-xs font-semibold text-slate-600 underline hover:text-red-700">
+          <button
+            type="button"
+            onClick={() => {
+              setRadiograph(null);
+              setFileName("");
+            }}
+            className="mt-3 text-xs font-semibold text-rose-400 underline hover:text-rose-300"
+          >
             Remove image
           </button>
         )}
-        {errors.radiograph && <p className="mt-2 text-sm text-red-700">{errors.radiograph}</p>}
-        <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500">
-          <Icon name="spark" size={14} />
-          <span>AI image interpretation will be added later. Radiographs are preserved locally and excluded from AI prompts in this prototype.</span>
-        </p>
+
+        {errors.radiograph && <p className="mt-2 text-sm text-red-400">{errors.radiograph}</p>}
+
+        <div className="mt-4 rounded-xl bg-slate-900/70 border border-slate-700/60 p-3.5 text-xs text-slate-300 flex items-start gap-2.5">
+          <Icon name="shield" size={16} className="text-teal-400 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-semibold text-slate-100">De-identification &amp; Privacy Mandate:</span> All radiograph pixels remain exclusively within local browser memory. Image payloads are systematically stripped (<code className="text-teal-300 font-mono text-[11px]">radiograph: null</code>) prior to network transmission to prevent hallucinated visual reasoning.
+          </div>
+        </div>
       </section>
+
+      {/* Multi-stage liquid-glass shimmer skeleton during AI analysis */}
+      {isAnalyzing && (
+        <div className="my-6">
+          <LiquidGlassSkeleton elapsedSeconds={analysisElapsed} />
+        </div>
+      )}
 
       {errors.submit && (
         <p role="alert" className="glass-card-subtle glass-tint-rose rounded-lg border border-rose-300 px-4 py-3 text-sm leading-5 text-rose-900 shadow-xs">
@@ -1124,14 +1190,14 @@ function SectionContainer({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="glass-card p-5 sm:p-7 scroll-mt-24">
+    <section id={id} className="glass-panel p-5 sm:p-7 scroll-mt-28 rounded-2xl shadow-sm">
       <div className="flex items-center justify-between">
         <div className="flex gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50/90 text-xs font-bold text-teal-800 border border-teal-200/80 shadow-xs">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-teal-500/15 text-xs font-black text-teal-950 border border-teal-500/30 shadow-xs">
             {index}
           </span>
           <div>
-            <h2 className="text-base font-semibold text-slate-950">{title}</h2>
+            <h2 className="text-base font-bold text-slate-950">{title}</h2>
             <p className="mt-0.5 text-xs leading-5 text-slate-500">{description}</p>
           </div>
         </div>
@@ -1139,7 +1205,7 @@ function SectionContainer({
           <button
             type="button"
             onClick={onToggle}
-            className="glass-button rounded-lg border border-slate-200/80 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white hover:text-slate-950"
+            className="glass-button rounded-xl border border-slate-200/80 bg-white/70 px-3.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-white hover:text-slate-950 shadow-xs"
           >
             {isOpen ? "Collapse" : "Expand (optional)"}
           </button>
@@ -1151,19 +1217,19 @@ function SectionContainer({
 }
 
 function inputClass(error?: string) {
-  return `w-full h-10 rounded-lg border ${
-    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300/90 focus:border-teal-600 focus:ring-teal-500/20"
-  } bg-white/90 focus:bg-white px-3 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 shadow-xs`;
+  return `w-full h-10.5 rounded-xl border ${
+    error ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200" : "border-slate-200/90 focus:border-teal-600 focus:ring-teal-500/25"
+  } bg-white/85 focus:bg-white px-3.5 text-xs font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:ring-2 shadow-xs backdrop-blur-md`;
 }
 
 function selectClass(error?: string) {
-  return `w-full h-10 rounded-lg border ${
-    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300/90 focus:border-teal-600 focus:ring-teal-500/20"
-  } bg-white/90 focus:bg-white px-3 text-xs text-slate-900 outline-none transition focus:ring-2 shadow-xs`;
+  return `w-full h-10.5 rounded-xl border ${
+    error ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200" : "border-slate-200/90 focus:border-teal-600 focus:ring-teal-500/25"
+  } bg-white/85 focus:bg-white px-3.5 text-xs font-medium text-slate-900 outline-none transition-all focus:ring-2 shadow-xs backdrop-blur-md`;
 }
 
 function textareaClass(error?: string) {
-  return `w-full rounded-lg border ${
-    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300/90 focus:border-teal-600 focus:ring-teal-500/20"
-  } bg-white/90 focus:bg-white px-3 py-2 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 resize-y shadow-xs`;
+  return `w-full rounded-xl border ${
+    error ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200" : "border-slate-200/90 focus:border-teal-600 focus:ring-teal-500/25"
+  } bg-white/85 focus:bg-white px-3.5 py-2.5 text-xs font-medium text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:ring-2 resize-y shadow-xs backdrop-blur-md`;
 }

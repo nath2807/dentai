@@ -117,9 +117,10 @@ export function ClinicianReviewTrace({
   }
 
   const isStale = storedCase.analysisStatus === "stale";
+  const isReviewed = (storedCase.reviewStatus || currentStatus) === "reviewed";
 
   return (
-    <section className="glass-card glass-tint-indigo rounded-2xl border-2 border-indigo-200/90 p-5 shadow-sm sm:p-7">
+    <section className="glass-authority-console rounded-2xl p-5 shadow-lg sm:p-7 relative overflow-hidden space-y-4">
       {/* Header with Title and Distinct Clinician Badge */}
       <div className="flex flex-col gap-3 border-b border-indigo-100/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -130,7 +131,7 @@ export function ClinicianReviewTrace({
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">
               Clinician Oversight &amp; Decision Trace
             </span>
-            <span className="glass-chip rounded-full bg-indigo-50/90 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200 shadow-xs">
+            <span className="glass-chip rounded-full bg-indigo-50/90 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200 shadow-xs">
               Licensed Dental Authority
             </span>
           </div>
@@ -148,7 +149,7 @@ export function ClinicianReviewTrace({
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="glass-button inline-flex h-8 items-center gap-1.5 rounded-lg border border-indigo-200/80 bg-indigo-50/80 px-3 text-xs font-semibold text-indigo-800 transition hover:bg-indigo-100 shadow-xs"
+              className="glass-pill inline-flex h-8 items-center gap-1.5 rounded-lg border border-indigo-200/80 bg-indigo-50/80 px-3 text-xs font-semibold text-indigo-800 transition hover:bg-indigo-100 shadow-xs"
             >
               Edit Decisions
             </button>
@@ -156,8 +157,30 @@ export function ClinicianReviewTrace({
         </div>
       </div>
 
+      {/* Verified State Locked Banner when Reviewed and not editing */}
+      {!isEditing && currentReview && isReviewed && (
+        <div className="glass-card-subtle flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-300/80 bg-emerald-50/70 p-3.5 text-emerald-950 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs">
+              <Icon name="check" size={16} />
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-emerald-950">
+                Clinician Authority Decision Locked &amp; Verified
+              </p>
+              <p className="text-[11px] text-emerald-800">
+                Signed off by {currentReview.reviewedBy || "Licensed Dental Professional"} {currentReview.reviewedAt ? `on ${new Date(currentReview.reviewedAt).toLocaleString()}` : ""}
+              </p>
+            </div>
+          </div>
+          <span className="glass-chip rounded-full bg-emerald-100 px-3 py-1 text-[11px] font-bold text-emerald-900 border border-emerald-300/80 shadow-xs">
+            🔒 Record Signed &amp; Audited
+          </span>
+        </div>
+      )}
+
       {/* Safety Notice: Clinician Review is independent, does not validate AI model */}
-      <div className="glass-card-subtle glass-tint-indigo mt-4 rounded-xl border border-indigo-100/90 p-3.5 text-xs text-indigo-950 shadow-xs">
+      <div className="glass-card-subtle glass-tint-indigo rounded-xl border border-indigo-100/90 p-3.5 text-xs text-indigo-950 shadow-xs">
         <p className="leading-relaxed">
           <strong className="font-bold text-indigo-900">Clinical Review Protocol:</strong> Recording clinician review documents the licensed attending dentist&apos;s independent clinical oversight and definitive decision trace. Marking a case reviewed records clinical evaluation and does not certify the algorithmic accuracy of assistive AI outputs.
         </p>
@@ -516,7 +539,7 @@ export function ClinicianReviewTrace({
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="glass-button rounded-lg border border-slate-300/80 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white shadow-xs"
+                className="glass-pill rounded-lg border border-slate-300/80 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white shadow-xs"
               >
                 Cancel
               </button>
@@ -525,7 +548,7 @@ export function ClinicianReviewTrace({
             <button
               type="button"
               onClick={() => handleSaveReview("needs_review")}
-              className="glass-button rounded-lg border border-amber-300 bg-amber-50/90 px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 shadow-xs"
+              className="glass-pill rounded-lg border border-amber-300 bg-amber-50/90 px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 shadow-xs"
             >
               Save as Needs Review
             </button>
@@ -533,7 +556,7 @@ export function ClinicianReviewTrace({
             <button
               type="button"
               onClick={() => handleSaveReview("reviewed")}
-              className="glass-button glass-shine rounded-lg bg-indigo-700 px-5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-800"
+              className="glass-pill glass-shine rounded-lg bg-indigo-700 px-5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-800"
             >
               ✓ Save &amp; Mark as Reviewed
             </button>
