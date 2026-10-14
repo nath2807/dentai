@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -20,13 +20,13 @@ import { ToothChart } from "@/components/tooth-chart";
 import { PeriodontalChart } from "@/components/periodontal-chart";
 import type { PeriodontalChartData } from "@/lib/periodontal-types";
 import type { ToothInfo } from "@/lib/tooth-numbering";
+import { assertWorkspaceCurrent, getWorkspaceUserId, workspaceStorageKey } from "@/lib/browser-workspace";
 
 type Draft = {
   values: FormValues;
   radiograph: Radiograph | null;
   periodontalChart?: PeriodontalChartData | null;
 };
-const draftKey = "dentai-clinical-case-draft";
 
 function extractFormValuesFromStoredCase(storedCase: StoredCase): FormValues {
   if (storedCase.formValues && Object.keys(storedCase.formValues).length > 0) {
@@ -74,6 +74,8 @@ function extractFormValuesFromStoredCase(storedCase: StoredCase): FormValues {
 }
 
 export default function CaseForm() {
+  const workspaceUserId = getWorkspaceUserId();
+  const draftKey = workspaceStorageKey("draft", workspaceUserId);
   const router = useRouter();
   const searchParams = useSearchParams();
   const editId = searchParams.get("id");
@@ -209,9 +211,9 @@ export default function CaseForm() {
       window.localStorage.removeItem(draftKey);
     }
     return () => window.clearTimeout(timer);
-  }, [editId]);
+  }, [editId, draftKey]);
 
-  function readValues(): FormValues {
+  const readValues = useCallback((): FormValues => {
     const formData = new FormData(formRef.current ?? undefined);
     return Object.fromEntries(
       Array.from(formData.entries()).map(([key, value]) => [
@@ -219,7 +221,22 @@ export default function CaseForm() {
         typeof value === "string" ? value : "",
       ])
     ) as FormValues;
-  }
+  }, []);
+
+  useEffect(() => {
+    const preserve = () => {
+      if (!formRef.current) return;
+      const values = readValues();
+      if (!values.caseId?.trim() && !values.complaint?.trim() && !values.toothNumber?.trim()) return;
+      try { window.localStorage.setItem(draftKey, JSON.stringify({ values, radiograph, periodontalChart })); }
+      catch { /* Existing saved cases remain intact if the browser quota is exhausted. */ }
+    };
+    window.addEventListener("dentarith-workspace-before-change", preserve);
+    return () => {
+      preserve();
+      window.removeEventListener("dentarith-workspace-before-change", preserve);
+    };
+  }, [draftKey, readValues, radiograph, periodontalChart]);
 
   function setValidationErrors(issues: ZodIssue[]) {
     const nextErrors: Record<string, string> = {};
@@ -341,6 +358,7 @@ export default function CaseForm() {
         signal: AbortSignal.timeout(35000),
       });
       const payload = (await response.json()) as ClinicalAnalysis | { error?: string };
+      assertWorkspaceCurrent(workspaceUserId);
       if (!response.ok) {
         throw new Error(
           "error" in payload && payload.error
@@ -360,14 +378,14 @@ export default function CaseForm() {
       });
       // Remove draft only AFTER successful analysis and storage
       window.localStorage.removeItem(draftKey);
-      window.sessionStorage.setItem("dentai-clinical-analysis", JSON.stringify(payload));
-      window.sessionStorage.setItem("dentai-clinical-case", JSON.stringify(requestCase));
+      window.sessionStorage.setItem(workspaceStorageKey("analysis", workspaceUserId), JSON.stringify(payload));
+      window.sessionStorage.setItem(workspaceStorageKey("analysis-case", workspaceUserId), JSON.stringify(requestCase));
       router.push(`/cases/${encodeURIComponent(caseId)}`);
     } catch (error) {
       setIsAnalyzing(false);
       // Explicitly preserve entered data in localStorage on error
       try {
-        window.localStorage.setItem(
+        if (getWorkspaceUserId() === workspaceUserId) window.localStorage.setItem(
           draftKey,
           JSON.stringify({ values, radiograph, periodontalChart })
         );
