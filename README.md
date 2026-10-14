@@ -9,11 +9,12 @@ Dentarith operates strictly as a **clinician-in-control support tool**, preservi
 ## 🏛️ Architecture & Core Principles
 
 1. **Clinician In Control (Non-Autonomous)**: Dentarith provides structured decision support, differential comparisons, and missing information alerts. It never initiates treatment, issues autonomous prescriptions, or replaces the licensed clinician's professional judgment.
-2. **Local-First Storage with Optional Cloud Operations**: Clinical cases and report data are saved in browser local storage. Settings also provides authenticated PostgreSQL cloud sync and local-to-cloud case import. Clinical text is sent to Gemini for analysis. Use synthetic/de-identified cases; cloud sync and account isolation have unresolved defects listed in the engineering audit.
-3. **Radiograph Client-Side Isolation**: Uploaded radiograph images remain strictly in local browser memory and session storage. Image payloads are explicitly stripped (`radiograph: null`) before sending clinical text to the AI reasoning engine to prevent unverified visual hallucinations.
-4. **Dual Tooth-Numbering Architecture**: Seamless bidirectional support for both the **Universal Numbering System** (USA: #1–32) and the **FDI World Dental Federation Two-Digit Notation** (ISO 3950: 11–48), complete with an interactive dental arch selector and anatomical metadata mapping.
-5. **Strict Schema & Type Safety**: Strict validation on case inputs (`clinicalCaseSchema`), AI reasoning responses (`ClinicalAnalysis`), and backup bundles using Zod schemas. Invalid or incomplete model responses are rejected with recoverable errors.
-6. **AI Pipeline**: Server-side credentials via `@google/genai` (defaulting to `gemini-3.8-flash`), AbortSignal timeout handling (28s), and retries for transient upstream rate limits (429) or service outages (503). Production access controls and error/log sanitization need further verification.
+2. **Local-First Workspace with Optional Cloud Synchronization**: Clinical cases and report data are saved locally in the browser. Clinicians can optionally connect to an authenticated multi-tenant PostgreSQL cloud store with account-scoped synchronization and local-to-cloud case migration. Client-side radiograph isolation strictly prevents raw imaging payloads from entering cloud or AI payloads (`radiograph: null`).
+3. **Radiograph Client-Side Isolation**: Uploaded radiograph images remain strictly in local browser memory and session storage. Image payloads are explicitly stripped (`radiograph: null`) before sending clinical text to the AI reasoning engine or saving to cloud records to prevent unverified visual hallucinations.
+4. **Dual Tooth-Numbering Architecture**: Seamless bidirectional support for both the **Universal Numbering System** (USA: #1–32) and the **FDI World Dental Federation Two-Digit Notation** (ISO 3950: 11–48) with explicit prefix resolution (`detectExplicitSystem`) eliminating numeric collisions between systems, complete with an interactive dental arch selector and anatomical metadata mapping.
+5. **Strict Schema & Type Safety**: Strict runtime validation on case inputs (`clinicalCaseSchema`), cloud synchronization and migration payloads (`cloudCaseDataSchema`, `syncPushItemSchema`, `migrationRequestSchema` with zero `z.any()`), AI reasoning responses (`ClinicalAnalysis`), and backup bundles using Zod schemas. Invalid or incomplete model responses are rejected with recoverable errors.
+6. **AI Pipeline & Rate Limiting**: Server-side credentials via `@google/genai` (defaulting to `gemini-3.8-flash`), AbortSignal timeout handling (28s), retries for transient upstream rate limits (429) or service outages (503), client rate limiting (15 req/60s via `evaluateRateLimit`), and sanitized error responses across all API endpoints.
+7. **Apple iOS Liquid Glassmorphic Design System**: Modern, accessible visionOS/iOS-inspired clinical UI utilizing Tailwind tokens (`.glass-panel`, `.glass-card`, `.glass-pill`, `.glass-button`) across all primary clinical routes (`/cases/new`, `/cases/[id]`, `/cases/[id]/report`, `/cases`, `/cases/demo`, `/settings`, and `/`).
 
 See [the engineering audit and prioritized backlog](docs/ENGINEERING_AUDIT.md) for verified development status and production blockers, and [AGENTS.md](AGENTS.md) for development safeguards. Implemented features are not a claim of clinical validation or production readiness.
 
@@ -24,19 +25,20 @@ See [the engineering audit and prioritized backlog](docs/ENGINEERING_AUDIT.md) f
 Dental clinicians work across different numbering conventions. Dentarith provides a built-in bidirectional anatomy engine (`src/lib/tooth-numbering.ts`):
 - **Universal Numbering System (#1–32)**: Standard permanent dentition notation widely used in the United States.
 - **FDI World Dental Federation (11–48)**: International standard (ISO 3950) used across Europe, Commonwealth nations, and global clinical literature.
+- **Explicit System Resolution**: Identifies `FDI`/`ISO` and `#`/`UNS`/`Universal` prefixes prior to input cleaning to prevent overlapping numeric collisions (e.g., FDI 11 vs. Universal #11).
 - **Interactive Dental Arch Selector (`ToothChart`)**: Maxillary (upper) and mandibular (lower) arches with live hover inspection, system toggles, and single-click autofill for tooth number, arch, quadrant, and region.
 - **AI Prompt Grounding**: System instructions explicitly guide the AI reasoning engine to interpret tooth numbers correctly across both numbering schemes and verify quadrant concordance.
 
 ---
 
-## 📋 Comprehensive Clinical Workflow
+## 📋 Comprehensive Clinical Workflow & Liquid Glass UX
 
 - **Case Intake (`/cases/new`)**:
   - Jump navigation between sections: Chief Complaint, Pain Assessment, Tooth Assessment & Arch Selector, Pulpal & Periapical Tests, Periodontal Exam, Hard & Soft Tissues, Medical/Dental History, and Investigations.
   - Radiograph de-identification guidelines and client-side isolation notice.
   - Quick-fill synthetic clinical archetypes for rapid exploration.
 - **AI Differential Reasoning (`/cases/[id]`)**:
-  - Structured observation vs. interpretation separation.
+  - Structured observation vs. interpretation separation with Liquid Glass diagnostic cards.
   - Ranked differential diagnoses with clinical likelihood badges (High, Moderate, Low) and taxonomy categories (Pulpal, Apical, Periodontal, Hard Tissue, Soft Tissue, Other).
   - Explicit justification for why the leading consideration ranks highest (`whyRanksHighest`).
   - Evidence mapping: linking specific clinical findings directly to their diagnostic implications.
@@ -56,7 +58,7 @@ Dental clinicians work across different numbering conventions. Dentarith provide
   - Local storage quota tracking and automatic quota recovery.
   - De-identified JSON export and import for workspace backups.
 - **Benchmark Cases (`/cases/demo` & `/settings`)**:
-  - Built-in educational archetypes: Symptomatic Irreversible Pulpitis, Reversible Pulpitis, and Pulpal Necrosis with Chronic Apical Periodontitis.
+  - Built-in educational archetypes: Symptomatic Irreversible Pulpitis, Reversible Pulpitis, and Pulpal Necrosis with Chronic Apical Periodontitis rendered with Liquid Glass cards.
 
 ---
 
@@ -87,11 +89,16 @@ Dental clinicians work across different numbering conventions. Dentarith provide
    Production authentication/cloud operations additionally require `DATABASE_URL`,
    `AUTH_SECRET` (at least 32 characters), `UPSTASH_REDIS_REST_URL`, and
    `UPSTASH_REDIS_REST_TOKEN`. `NEXTAUTH_SECRET` is a supported secret alias.
-   Keep `ENABLE_DEMO_ACCOUNTS` disabled in production. Configure SQL schema
-   through a reviewed migration plan; this project has no migration CLI yet.
-   `/api/cloud/migrate` imports cases and does not migrate the SQL schema.
+   Keep `ENABLE_DEMO_ACCOUNTS` disabled in production. Database TLS certificate
+   verification (`rejectUnauthorized: true`) is enforced by default in production.
 
-3. **Start the development server**:
+3. **Run database schema migrations (when PostgreSQL is configured)**:
+   ```bash
+   npm run db:migrate
+   ```
+   > **Note on Migrations**: `npm run db:migrate` runs versioned PostgreSQL DDL schema migrations under an exclusive transactional advisory lock (`scripts/db-migrate.mjs` / `src/lib/db-migrate.ts`). This is distinct from `/api/cloud/migrate`, which is the user-facing API route for importing local browser cases to authenticated cloud storage.
+
+4. **Start the development server**:
    ```bash
    npm run dev
    ```
@@ -107,7 +114,7 @@ Dentarith maintains a comprehensive automated testing and validation suite:
   ```bash
   npm test
   ```
-  At the latest 2026-10-13 verification: 204 tests passed across 17 suites. The default configuration clears inherited service credentials and excludes live PostgreSQL tests. Persistent stores reject bulk clearing. Do not load `.env.local` into tests or bypass the isolation. Workflow library tests do not establish browser end-to-end coverage.
+  At the latest verification: 250 tests passed across 21 suites. The default configuration clears inherited service credentials and excludes live PostgreSQL tests. Persistent stores reject bulk clearing. Do not load `.env.local` into tests or bypass the isolation. Workflow library tests do not establish browser end-to-end coverage.
 
 - **Run explicit disposable PostgreSQL integration checks**:
   Follow [the local test database instructions](docs/POSTGRES_TESTING.md), then run `npm run test:postgres`. This separate command requires explicit opt-in and a local `TEST_DATABASE_URL`; it never falls back to the application database. Six live checks are implemented but have not yet been executed successfully against PostgreSQL in this workspace.

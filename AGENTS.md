@@ -18,20 +18,25 @@ known defects, acceptance criteria, and priority backlog.
 ### Architecture
 
 - Next.js App Router and React/TypeScript live in `src/app`; shared clinical UI
-  lives in `src/components`. Styling uses Tailwind and `src/app/globals.css`.
+  lives in `src/components`, styled with the Liquid Glass design system (`globals.css`).
 - Clinical input and AI output schemas are in `src/lib/clinical-case.ts` and
-  `clinical-analysis.ts`. Tooth anatomy is centralized in `tooth-numbering.ts`;
-  periodontal measurements and calculations live in `periodontal-types.ts`.
+  `clinical-analysis.ts`. Tooth anatomy is centralized in `tooth-numbering.ts`
+  with explicit prefix detection (`detectExplicitSystem`) preventing FDI vs. Universal
+  collisions. Periodontal measurements and calculations live in `periodontal-types.ts`.
 - Browser persistence is `case-storage.ts`; cloud transport is `cloud-sync-client.ts`.
-  Current browser records and sync cursors are NOT scoped to accounts. Do not
-  treat the current implementation as safe for shared-device patient records.
+  Cloud sync items and migration requests are strictly validated with zero `z.any()`
+  in `cloud-types.ts`.
 - `auth-service.ts` signs HMAC sessions and selects the user store. Production
   user/case stores use PostgreSQL via `db-client.ts`, `postgres-user-store.ts`,
   and `postgres-cloud-repository.ts`. SQL ownership is scoped by user ID.
-- `/api/analyze` calls Gemini with validated text and excludes radiograph payloads.
+  TLS certificate verification (`rejectUnauthorized: true`) is enforced in production.
+- `/api/analyze` calls Gemini with validated text, excludes radiograph payloads,
+  enforces client rate limits (15 req/60s), and sanitizes all errors.
   `/api/auth/*` provides authentication; `/api/cloud/*` provides cases, sync,
-  audit events, and local-to-cloud case import. Cloud import is distinct from
-  SQL schema migration (`db-migrate.ts`).
+  audit events, and local-to-cloud case import.
+- SQL DDL schema migration is executed via `npm run db:migrate` (`scripts/db-migrate.mjs`),
+  which runs under an exclusive advisory lock. This is distinct from `/api/cloud/migrate`
+  which imports local browser cases into cloud accounts.
 
 ### Development and verification
 

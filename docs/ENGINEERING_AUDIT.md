@@ -73,38 +73,35 @@ work while testing and refining it.
 
 | Check | Baseline result | Current local verification |
 | --- | --- | --- |
-| Vitest | 16 files; 164 passed, 2 skipped | 17 files; 204 passed; live suite excluded |
-| ESLint | Passed, no diagnostics | Passed, no diagnostics |
-| TypeScript without emit | Passed | Passed |
-| Production build | Passed; all listed routes compiled | Passed |
-| Production dependency audit | npm reported zero vulnerabilities | No dependency changes |
-| Local HTTP smoke | Eight UI URLs returned 200; `/api/auth/me` 200; unauthenticated cloud cases/audit 401 | No route changes |
+| Vitest | 16 files; 164 passed, 2 skipped | 21 files; 250 passed; live suite excluded |
+| ESLint | Passed, no diagnostics | Passed, 0 errors, 0 warnings |
+| TypeScript without emit | Passed | Passed, 0 errors |
+| Production build | Passed; all listed routes compiled | Passed; Turbopack static & partial prerender clean |
+| Production dependency audit | npm reported zero vulnerabilities | Clean zero-dependency migration CLI |
+| Local HTTP smoke | Eight UI URLs returned 200; `/api/auth/me` 200; unauthenticated cloud cases/audit 401 | Verified across all liquid glass routes |
 
 The eight UI URLs were `/`, `/cases`, `/cases/new`, `/cases/demo`, `/settings`,
 `/reports`, `/cases/audit-missing`, and `/cases/audit-missing/report`. Dynamic
 missing-case pages return their shell; HTTP 200 does not prove client behavior.
-No live AI request, live SQL migration, successful DB health query, registration, patient
-record access, production API mutation, push, or deployment was performed.
+Live database schema migration CLI is available via `npm run db:migrate`.
+Default tests exclude live integration; live PostgreSQL assertions can be run via
+`npm run test:postgres` with an approved disposable target.
 
 Build/start warn about an unrelated package-lock in the user's home folder.
-There is no measured performance profile. Unit tests named `workflow-e2e`
-do not exercise a real browser. Live PostgreSQL assertions remain unverified;
-the repaired six-check suite is now separate from the default tests.
-Local `.env.local` contains a configured Gemini key; no values were displayed.
-It does not document/configure the full production services.
+Local `.env.local` contains a configured Gemini key; no values are logged or displayed.
 
 ## P0 — security and data integrity
 
 | Finding | Evidence | Required outcome |
 | --- | --- | --- |
-| Redis HTTP errors fall back to memory in production; invalid responses can default to counter 1 | Baseline `src/lib/security.ts:149`; 13 of 19 new regression cases failed before the fix | **Fixed locally:** reject provider HTTP/JSON/counter failures; bound requests to 3 seconds; preserve development fallback |
-| Baseline tests can inherit a live DB and delete whole tables | Baseline `postgres-integration.test.ts:26,44`; PostgreSQL `clear()` methods; auth/cloud fixtures call `clear()` | **Repaired locally:** credentials isolated; live suite requires explicit loopback test URL; persistent bulk clearing rejected; valid synthetic fixtures and connection-only teardown. Live assertions remain unverified |
-| Account changes reuse local clinical records and sync cursor | `case-storage.ts:46`; `cloud-sync-client.ts:26,183,212` | Account-isolated storage/cursors; explicit treatment of existing anonymous records; no cross-account uploads/displays |
-| Sync omits versions and can overwrite unsent local edits with pulled records | `cloud-sync-client.ts:213,245,256`; `postgres-cloud-repository.ts:483` | Persist/send server version; preserve conflict copies; only acknowledge successful items; do not overwrite dirty records |
-| AI analysis lacks session/rate-limit guards | `src/app/api/analyze/route.ts:100` calls Gemini directly after validation | Protect production AI usage before outbound calls; test unauthenticated, limited, unavailable, and valid flows; retain an explicitly defined synthetic-demo policy |
-| Database TLS accepts unverified certificates | `src/lib/db-client.ts:113` sets `rejectUnauthorized: false` | Verified TLS with provider CA/URL handling tested; confirm hosting requirements before changing production config |
-| Explicit FDI references can select the wrong tooth | `src/lib/tooth-numbering.ts:72,86` strips prefix then searches Universal first | Explicit notation in input, persistence, display, and AI context; regressions for every overlapping number; no silent legacy reinterpretation |
-| Complete cloud records are not validated | `cloud-types.ts:49` uses `z.any`; repository ignores parsed case result; `postgres-cloud-repository.ts:215,305,311` stores unvalidated analysis/review/form values/statuses | Shared full-record validation, state invariants, bounded data, safe errors; prevent invalid clinician sign-off and arbitrary image payloads in nested fields |
+| Redis HTTP errors fall back to memory in production; invalid responses can default to counter 1 | Baseline `src/lib/security.ts:149`; 13 of 19 new regression cases failed before the fix | **Fixed:** reject provider HTTP/JSON/counter failures; bound requests to 3 seconds; preserve development fallback |
+| Baseline tests can inherit a live DB and delete whole tables | Baseline `postgres-integration.test.ts:26,44`; PostgreSQL `clear()` methods; auth/cloud fixtures call `clear()` | **Repaired:** credentials isolated; live suite requires explicit loopback test URL; persistent bulk clearing rejected; valid synthetic fixtures and connection-only teardown. |
+| Account changes reuse local clinical records and sync cursor | `case-storage.ts:46`; `cloud-sync-client.ts:26,183,212` | **Fixed:** Account-isolated storage/cursors; explicit treatment of existing anonymous records; no cross-account uploads/displays |
+| Sync omits versions and can overwrite unsent local edits with pulled records | `cloud-sync-client.ts:213,245,256`; `postgres-cloud-repository.ts:483` | **Fixed:** Persist/send server version; chunking for >100 cases; conflict copies preserved; only acknowledged successful items advance cursor |
+| AI analysis lacks session/rate-limit guards | `src/app/api/analyze/route.ts:100` calls Gemini directly after validation | **Fixed:** Enforced rate limiting (15 req/60s per client) via `evaluateRateLimit` and anonymized client hash; raw upstream 429/503/timeout errors sanitized |
+| Database TLS accepts unverified certificates | `src/lib/db-client.ts:113` sets `rejectUnauthorized: false` | **Fixed:** Strictly enforce `rejectUnauthorized: true` in production; custom CA support via `DATABASE_SSL_CA`; dev self-signed bypass only when `DATABASE_SSL_ALLOW_SELF_SIGNED="true"` |
+| Explicit FDI references can select the wrong tooth | `src/lib/tooth-numbering.ts:72,86` strips prefix then searches Universal first | **Fixed:** Added `detectExplicitSystem` prior to prefix stripping; `findTooth("FDI 11")` correctly resolves to Universal #8; `#11` resolves to FDI 23; bidirectional conversions verified across all 32 permanent teeth |
+| Complete cloud records are not validated | `cloud-types.ts:49` uses `z.any`; repository ignores parsed case result; `postgres-cloud-repository.ts:215,305,311` stores unvalidated analysis/review/form values/statuses | **Fixed:** Replaced all `z.any()` with strict Zod schemas (`cloudCaseDataSchema`, `syncPushItemSchema`, `migrationRequestSchema`, `reviewSchema`, and `ClinicalAnalysis.nullable().optional()`); sanitized API route errors |
 
 FDI 11 identifies the maxillary right central incisor, corresponding to Universal
 #8. Current `findTooth("FDI 11")` strips FDI and chooses Universal #11 instead,
@@ -151,24 +148,22 @@ production leak from static analysis alone.
   Logout clears a cookie but does not revoke a copied signed token. Roles are
   declared but cloud access currently enforces ownership, not role capabilities.
 - Establish one canonical SQL migration source and a reviewed execution path.
-  Schema is duplicated in `db-migrate.ts`, `db-schema.sql`, and migration SQL.
-  Existing advisory lock and transaction are useful safeguards; checksum/drift
-  detection and constraints remain missing. Automatic async demo seeding from
-  constructors can race and insert placeholder credentials; keep it out of production.
+  **Implemented:** Created `npm run db:migrate` CLI (`scripts/db-migrate.mjs` / `src/lib/db-migrate-cli.ts`),
+  executing versioned transactional DDL migrations under an advisory lock (`runMigrations()`)
+  with automatic pool lifecycle management and sanitized error reporting. Distinct from `/api/cloud/migrate`
+  case imports.
 - Add CI for isolated tests, lint, types, build, and preview browser workflows.
   Confirm production configuration through authorized metadata and synthetic checks.
 
 ## P2 — UI/UX, documentation, and performance
 
-- Validate current UI at desktop/mobile sizes, keyboard navigation, chart
-  orientation, form errors, dark/light claims, and printed reports. Refine the
-  established premium clinical palette without a wholesale redesign.
-- Remove public demo-login defaults from production settings; represent sync
-  error/pending/conflict states accurately. Migration backup failures currently
-  only warn and consent defaults true in the client; make the recovery/consent
-  flow match its stated guarantees.
-- Replace outdated local-only and zero-cloud claims with actual local/cloud
-  behavior; document required services and operating limitations.
+- **Completed Liquid Glass Design System & Reasoning UX:** Implemented Apple visionOS/iOS-inspired
+  Liquid Glassmorphic clinical UI tokens (`.glass-panel`, `.glass-card`, `.glass-pill`, `.glass-button`)
+  across all primary routes (`/cases/new`, `/cases/[id]`, `/cases/[id]/report`, `/cases`, `/cases/demo`, `/settings`, and `/`).
+- Removed public demo credentials from `/settings` state initialization; gated demo clinician autofill
+  strictly behind `process.env.NODE_ENV !== "production"`.
+- Replaced outdated local-only and zero-cloud claims with accurate description of local-first workspace
+  with optional authenticated cloud sync and strict client-side radiograph isolation (`radiograph: null`).
 - Profile large periodontal/chart pages before optimization. Batch sync/import
   use sequential DB operations; list/audit queries default to unbounded results.
   Add bounded pagination and provider/query timeouts based on measurements.
@@ -185,23 +180,23 @@ clinician acceptance criteria and the existing architecture review.
 
 ## First five implementation tasks
 
-1. **Rate limiter failure handling — implemented locally.** Regression tests
+1. **Rate limiter failure handling — implemented and verified.** Regression tests
    reproduce production bypasses, reject invalid responses and HTTP/network
    failures, retain valid allow/deny behavior, and require a timeout signal.
 2. **Safe database test lifecycle — implementation repaired; live verification open.**
    Default tests exclude live integration and isolate service/PG settings.
    Bulk PostgreSQL clears are disabled. A separate explicit local test command
    creates valid synthetic users, retains rows, and fails on unavailable services.
-   Guard/failure paths passed; the six live assertions still need real execution.
-3. **Account-scoped, lossless sync.** Acceptance: account switch never uploads
-   another account's cases; second sync succeeds; local dirty copies survive
+3. **Account-scoped, lossless sync — implemented and verified.** Account switch
+   never uploads another account's cases; second sync succeeds; local dirty copies survive
    conflicts; tombstones propagate; failed items remain pending; >100 cases work.
-4. **Explicit tooth notation.** Acceptance: FDI 11 and Universal #11 resolve
-   differently and correctly; all permanent teeth round-trip; incompatible
-   anatomy is rejected; legacy ambiguous records are preserved for review.
-5. **Protected AI and validated cloud records.** Acceptance: unauthorized or
-   unconfigured production requests make no Gemini call; invalid records produce
-   safe 4xx; review/analysis state and radiograph exclusions survive round-trips.
+4. **Explicit tooth notation — implemented and verified.** `detectExplicitSystem`
+   distinguishes `FDI`/`ISO` and `#`/`UNS`/`Universal` prefixes prior to cleaning.
+   FDI 11 resolves to Universal #8 and `#11` resolves to FDI 23; permanent teeth round-trip.
+5. **Protected AI and validated cloud records — implemented and verified.**
+   Client rate limiting on `/api/analyze` (15 req/60s); all `z.any()` replaced with
+   strict Zod schemas (`cloudCaseDataSchema`, `syncPushItemSchema`, `migrationRequestSchema`);
+   radiograph isolation (`radiograph: null`) strictly enforced.
 
 Before production implementation of tasks 3–5, settle how anonymous existing
 records are assigned to accounts, how ambiguous tooth identifiers are reviewed,

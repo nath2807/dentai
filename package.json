@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "db:migrate": "node scripts/db-migrate.mjs",
     "test": "vitest run",
     "test:postgres": "vitest run --config vitest.postgres.config.ts"
   },
