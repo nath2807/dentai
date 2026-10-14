@@ -119,18 +119,18 @@ export function ClinicianReviewTrace({
   const isStale = storedCase.analysisStatus === "stale";
 
   return (
-    <section className="rounded-2xl border-2 border-indigo-200 bg-white p-5 shadow-sm sm:p-7">
+    <section className="glass-card glass-tint-indigo rounded-2xl border-2 border-indigo-200/90 p-5 shadow-sm sm:p-7">
       {/* Header with Title and Distinct Clinician Badge */}
-      <div className="flex flex-col gap-3 border-b border-indigo-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-indigo-100/80 pb-5 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 text-indigo-700">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-100 text-indigo-700 shadow-xs">
               <Icon name="report" size={14} />
             </span>
             <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">
               Clinician Oversight &amp; Decision Trace
             </span>
-            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200">
+            <span className="glass-chip rounded-full bg-indigo-50/90 px-2 py-0.5 text-[10px] font-bold text-indigo-700 border border-indigo-200 shadow-xs">
               Licensed Dental Authority
             </span>
           </div>
@@ -148,7 +148,7 @@ export function ClinicianReviewTrace({
           {!isEditing && (
             <button
               onClick={() => setIsEditing(true)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-semibold text-indigo-800 transition hover:bg-indigo-100"
+              className="glass-button inline-flex h-8 items-center gap-1.5 rounded-lg border border-indigo-200/80 bg-indigo-50/80 px-3 text-xs font-semibold text-indigo-800 transition hover:bg-indigo-100 shadow-xs"
             >
               Edit Decisions
             </button>
@@ -157,7 +157,7 @@ export function ClinicianReviewTrace({
       </div>
 
       {/* Safety Notice: Clinician Review is independent, does not validate AI model */}
-      <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3.5 text-xs text-indigo-950">
+      <div className="glass-card-subtle glass-tint-indigo mt-4 rounded-xl border border-indigo-100/90 p-3.5 text-xs text-indigo-950 shadow-xs">
         <p className="leading-relaxed">
           <strong className="font-bold text-indigo-900">Clinical Review Protocol:</strong> Recording clinician review documents the licensed attending dentist&apos;s independent clinical oversight and definitive decision trace. Marking a case reviewed records clinical evaluation and does not certify the algorithmic accuracy of assistive AI outputs.
         </p>
@@ -165,12 +165,12 @@ export function ClinicianReviewTrace({
 
       {/* Feedback Messages */}
       {saveSuccessMessage && (
-        <div className="mt-3 rounded-lg border border-emerald-300 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">
+        <div className="glass-card-subtle glass-tint-teal mt-3 rounded-lg border border-emerald-300 p-3 text-xs font-semibold text-emerald-900 shadow-xs">
           ✓ {saveSuccessMessage}
         </div>
       )}
       {saveError && (
-        <div className="mt-3 rounded-lg border border-red-300 bg-red-50 p-3 text-xs font-semibold text-red-800">
+        <div className="glass-card-subtle glass-tint-rose mt-3 rounded-lg border border-red-300 p-3 text-xs font-semibold text-red-900 shadow-xs">
           ⚠️ {saveError}
         </div>
       )}
@@ -179,7 +179,7 @@ export function ClinicianReviewTrace({
       {!isEditing && currentReview && (
         <div className="mt-5 space-y-5 text-xs">
           {/* Metadata Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-50 p-4 border border-slate-200 text-slate-700">
+          <div className="glass-card-subtle flex flex-wrap items-center justify-between gap-3 rounded-xl p-4 border border-slate-200/80 text-slate-700 shadow-xs">
             <div>
               <span className="font-bold text-slate-900">Reviewing Clinician: </span>
               <span>{currentReview.reviewedBy || "Licensed Dental Professional"}</span>
@@ -199,12 +199,12 @@ export function ClinicianReviewTrace({
           {/* AI vs Clinician Diagnostic Trace (Side-by-Side or Stacked) */}
           <div className="grid gap-4 md:grid-cols-2">
             {/* AI Leading Hypothesis */}
-            <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4">
+            <div className="glass-card glass-tint-teal rounded-xl border border-teal-200/90 p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800">
                   AI Assistive Hypothesis (Preserved Original)
                 </span>
-                <span className="rounded bg-teal-100 px-1.5 py-0.5 text-[9px] font-bold text-teal-800">
+                <span className="glass-chip rounded bg-teal-100/90 px-1.5 py-0.5 text-[9px] font-bold text-teal-800 border border-teal-200/60 shadow-xs">
                   Non-Autonomous
                 </span>
               </div>
@@ -215,23 +215,23 @@ export function ClinicianReviewTrace({
                 </p>
               )}
               {analysis?.possibleDiagnoses?.[0]?.whyRanksHighest && (
-                <p className="mt-2 text-[11px] text-teal-950 bg-white/80 p-2 rounded border border-teal-100">
+                <p className="glass-card-subtle mt-2 text-[11px] text-teal-950 p-2 rounded border border-teal-100 shadow-xs">
                   <strong>AI Basis:</strong> {analysis.possibleDiagnoses[0].whyRanksHighest}
                 </p>
               )}
             </div>
 
             {/* Clinician Confirmed Decision */}
-            <div className="rounded-xl border-2 border-indigo-300 bg-indigo-50/60 p-4">
+            <div className="glass-card glass-tint-indigo rounded-xl border-2 border-indigo-300/90 p-4 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-900">
                   Clinician Confirmed Diagnosis (Final Authority)
                 </span>
                 <span
-                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                  className={`glass-chip rounded px-1.5 py-0.5 text-[9px] font-bold border shadow-xs ${
                     currentReview.corrections?.agreedWithAiDiagnosis
-                      ? "bg-emerald-100 text-emerald-800"
-                      : "bg-amber-100 text-amber-900"
+                      ? "border-emerald-300 bg-emerald-100/90 text-emerald-800"
+                      : "border-amber-300 bg-amber-100/90 text-amber-900"
                   }`}
                 >
                   {currentReview.corrections?.agreedWithAiDiagnosis
@@ -243,7 +243,7 @@ export function ClinicianReviewTrace({
                 {currentReview.corrections?.finalDiagnosis || leadingAiDiagnosis}
               </p>
               {currentReview.corrections?.diagnosisNotes && (
-                <p className="mt-2 text-[11px] text-slate-700 bg-white p-2.5 rounded border border-indigo-100 leading-relaxed">
+                <p className="glass-card-subtle mt-2 text-[11px] text-slate-700 p-2.5 rounded border border-indigo-100/80 leading-relaxed shadow-xs">
                   <strong>Clinician Rationale:</strong> {currentReview.corrections.diagnosisNotes}
                 </p>
               )}
@@ -252,12 +252,12 @@ export function ClinicianReviewTrace({
 
           {/* Confirmed Treatment Plan */}
           {(currentReview.corrections?.treatmentPlan || currentReview.corrections?.treatmentPlanNotes) && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+            <div className="glass-card-subtle rounded-xl border border-slate-200/80 p-4 shadow-xs">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-700">
                 Confirmed Treatment Plan &amp; Procedural Orders
               </span>
               {currentReview.corrections?.treatmentPlan && (
-                <pre className="mt-2 whitespace-pre-wrap font-sans text-xs font-semibold text-slate-900 bg-white p-3 rounded-lg border border-slate-200">
+                <pre className="mt-2 whitespace-pre-wrap font-sans text-xs font-semibold text-slate-900 bg-white/90 p-3 rounded-lg border border-slate-200/80 shadow-xs">
                   {currentReview.corrections.treatmentPlan}
                 </pre>
               )}
@@ -273,13 +273,13 @@ export function ClinicianReviewTrace({
           {(currentReview.corrections?.additionalObservations || currentReview.notes) && (
             <div className="grid gap-3 sm:grid-cols-2">
               {currentReview.corrections?.additionalObservations && (
-                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                <div className="glass-card-subtle rounded-lg border border-slate-200/80 p-3 shadow-xs">
                   <span className="text-[10px] font-bold uppercase text-slate-500">Additional Observations</span>
                   <p className="mt-1 text-slate-700">{currentReview.corrections.additionalObservations}</p>
                 </div>
               )}
               {currentReview.notes && (
-                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                <div className="glass-card-subtle rounded-lg border border-slate-200/80 p-3 shadow-xs">
                   <span className="text-[10px] font-bold uppercase text-slate-500">Review Notes</span>
                   <p className="mt-1 text-slate-700">{currentReview.notes}</p>
                 </div>
@@ -314,10 +314,10 @@ export function ClinicianReviewTrace({
                 <button
                   type="button"
                   onClick={() => setStatus("reviewed")}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  className={`glass-button flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                     status === "reviewed"
-                      ? "border-emerald-600 bg-emerald-50 text-emerald-900 ring-2 ring-emerald-500/30"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-emerald-600 bg-emerald-50/90 text-emerald-900 ring-2 ring-emerald-500/30 shadow-xs"
+                      : "border-slate-300/80 bg-white/70 text-slate-700 hover:bg-white"
                   }`}
                 >
                   ✓ Reviewed
@@ -325,10 +325,10 @@ export function ClinicianReviewTrace({
                 <button
                   type="button"
                   onClick={() => setStatus("needs_review")}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  className={`glass-button flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                     status === "needs_review"
-                      ? "border-amber-500 bg-amber-50 text-amber-900 ring-2 ring-amber-500/30"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-amber-500 bg-amber-50/90 text-amber-900 ring-2 ring-amber-500/30 shadow-xs"
+                      : "border-slate-300/80 bg-white/70 text-slate-700 hover:bg-white"
                   }`}
                 >
                   ⚠️ Needs Review
@@ -336,10 +336,10 @@ export function ClinicianReviewTrace({
                 <button
                   type="button"
                   onClick={() => setStatus("pending")}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
+                  className={`glass-button flex-1 rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                     status === "pending"
-                      ? "border-slate-500 bg-slate-100 text-slate-900 ring-2 ring-slate-400/30"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-slate-500 bg-slate-100/90 text-slate-900 ring-2 ring-slate-400/30 shadow-xs"
+                      : "border-slate-300/80 bg-white/70 text-slate-700 hover:bg-white"
                   }`}
                 >
                   Pending
@@ -349,7 +349,7 @@ export function ClinicianReviewTrace({
           </div>
 
           {/* Diagnostic Decision Trace */}
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50/30 p-4">
+          <div className="glass-card-subtle glass-tint-indigo rounded-xl border border-indigo-200/90 p-4 shadow-xs">
             <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-900">
               1. Diagnostic Decision &amp; Concordance
             </h3>
@@ -362,10 +362,10 @@ export function ClinicianReviewTrace({
               <button
                 type="button"
                 onClick={handleSelectLeading}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
+                className={`glass-button rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
                   agreedWithAi && finalDiagnosis === leadingAiDiagnosis
-                    ? "border-emerald-600 bg-emerald-600 text-white"
-                    : "border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
+                    ? "border-emerald-600 bg-emerald-600 text-white shadow-xs"
+                    : "border-emerald-300 bg-emerald-50/90 text-emerald-800 hover:bg-emerald-100"
                 }`}
               >
                 ✓ Concur with AI Leading: &ldquo;{leadingAiDiagnosis}&rdquo;
@@ -376,10 +376,10 @@ export function ClinicianReviewTrace({
                   key={alt}
                   type="button"
                   onClick={() => handleSelectAlternative(alt)}
-                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                  className={`glass-button rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
                     !agreedWithAi && finalDiagnosis === alt
-                      ? "border-indigo-600 bg-indigo-600 text-white"
-                      : "border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                      ? "border-indigo-600 bg-indigo-600 text-white shadow-xs"
+                      : "border-slate-300/80 bg-white/80 text-slate-700 hover:bg-white"
                   }`}
                 >
                   Adopt &ldquo;{alt}&rdquo;
@@ -406,7 +406,7 @@ export function ClinicianReviewTrace({
                     );
                   }}
                   placeholder="Enter final clinical diagnosis"
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs font-semibold text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
+                  className="mt-1 w-full rounded-lg border border-slate-300/90 bg-white/90 p-2.5 text-xs font-semibold text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
                 />
               </div>
 
@@ -420,14 +420,14 @@ export function ClinicianReviewTrace({
                   value={diagnosisNotes}
                   onChange={(e) => setDiagnosisNotes(e.target.value)}
                   placeholder="Clinical reasons for concurrence or override"
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
+                  className="mt-1 w-full rounded-lg border border-slate-300/90 bg-white/90 p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
                 />
               </div>
             </div>
           </div>
 
           {/* Treatment Decision Trace */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50/50 p-4">
+          <div className="glass-card-subtle rounded-xl border border-slate-200/80 p-4 shadow-xs">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
@@ -441,7 +441,7 @@ export function ClinicianReviewTrace({
                 <button
                   type="button"
                   onClick={handleAdoptAiTreatment}
-                  className="rounded-lg border border-teal-300 bg-teal-50 px-2.5 py-1 text-[11px] font-semibold text-teal-800 transition hover:bg-teal-100"
+                  className="glass-button rounded-lg border border-teal-300 bg-teal-50/90 px-2.5 py-1 text-[11px] font-semibold text-teal-800 transition hover:bg-teal-100 shadow-xs"
                 >
                   Adopt AI Treatment Suggestions
                 </button>
@@ -459,7 +459,7 @@ export function ClinicianReviewTrace({
                   value={treatmentPlan}
                   onChange={(e) => setTreatmentPlan(e.target.value)}
                   placeholder="e.g. 1. Endodontic treatment on Tooth 36&#10;2. Post-endodontic coronal seal and crown"
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
+                  className="mt-1 w-full rounded-lg border border-slate-300/90 bg-white/90 p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
                 />
               </div>
 
@@ -473,7 +473,7 @@ export function ClinicianReviewTrace({
                   value={treatmentPlanNotes}
                   onChange={(e) => setTreatmentPlanNotes(e.target.value)}
                   placeholder="e.g. Irreversible symptoms warrant pulp extirpation. Caries depth requires indirect restoration."
-                  className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
+                  className="mt-1 w-full rounded-lg border border-slate-300/90 bg-white/90 p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
                 />
               </div>
             </div>
@@ -491,7 +491,7 @@ export function ClinicianReviewTrace({
                 value={additionalObservations}
                 onChange={(e) => setAdditionalObservations(e.target.value)}
                 placeholder="Any unrecorded anatomical, behavioral, or systemic nuances"
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
+                className="mt-1 w-full rounded-lg border border-slate-300/90 bg-white/90 p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
               />
             </div>
 
@@ -505,18 +505,18 @@ export function ClinicianReviewTrace({
                 value={reviewNotes}
                 onChange={(e) => setReviewNotes(e.target.value)}
                 placeholder="Audit notes or instructions for clinical team"
-                className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
+                className="mt-1 w-full rounded-lg border border-slate-300/90 bg-white/90 p-2.5 text-xs text-slate-900 shadow-xs focus:border-indigo-500 focus:outline-hidden"
               />
             </div>
           </div>
 
           {/* Save Action Buttons */}
-          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200 pt-4">
+          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-slate-200/80 pt-4">
             {currentReview?.reviewedAt && (
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="glass-button rounded-lg border border-slate-300/80 bg-white/70 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-white shadow-xs"
               >
                 Cancel
               </button>
@@ -525,7 +525,7 @@ export function ClinicianReviewTrace({
             <button
               type="button"
               onClick={() => handleSaveReview("needs_review")}
-              className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
+              className="glass-button rounded-lg border border-amber-300 bg-amber-50/90 px-4 py-2 text-xs font-semibold text-amber-900 transition hover:bg-amber-100 shadow-xs"
             >
               Save as Needs Review
             </button>
@@ -533,7 +533,7 @@ export function ClinicianReviewTrace({
             <button
               type="button"
               onClick={() => handleSaveReview("reviewed")}
-              className="rounded-lg bg-indigo-700 px-5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-800"
+              className="glass-button glass-shine rounded-lg bg-indigo-700 px-5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-indigo-800"
             >
               ✓ Save &amp; Mark as Reviewed
             </button>
@@ -553,7 +553,7 @@ function ReviewStatusBadge({
 }) {
   if (isStale) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-amber-400 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-900">
+      <span className="glass-chip inline-flex items-center gap-1 rounded-full border border-amber-400 bg-amber-50/90 px-2.5 py-0.5 text-[10px] font-bold text-amber-900 shadow-xs">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
         Needs Re-Review (Stale Clinical Data)
       </span>
@@ -562,7 +562,7 @@ function ReviewStatusBadge({
 
   if (status === "reviewed") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400 bg-emerald-50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+      <span className="glass-chip inline-flex items-center gap-1 rounded-full border border-emerald-400 bg-emerald-50/90 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 shadow-xs">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
         Clinician Reviewed
       </span>
@@ -571,7 +571,7 @@ function ReviewStatusBadge({
 
   if (status === "needs_review") {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-[10px] font-bold text-amber-800">
+      <span className="glass-chip inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/90 px-2.5 py-0.5 text-[10px] font-bold text-amber-800 shadow-xs">
         <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
         Needs Clinician Review
       </span>
@@ -579,7 +579,7 @@ function ReviewStatusBadge({
   }
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
+    <span className="glass-chip inline-flex items-center gap-1 rounded-full border border-slate-300 bg-slate-50/90 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 shadow-xs">
       <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
       Review Pending
     </span>

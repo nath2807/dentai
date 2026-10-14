@@ -48,12 +48,12 @@ export function ToothChart({
   const inspectedTooth = hoveredTooth || activeTooth;
 
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-xs sm:p-5">
+    <div className="glass-card p-4 sm:p-5">
       {/* Header with System Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3.5">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100/80 pb-3.5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-teal-600" />
+            <span className="flex h-2 w-2 rounded-full bg-teal-600 shadow-xs" />
             <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
               Interactive Odontogram &amp; Dental Arch Selector
             </span>
@@ -65,11 +65,11 @@ export function ToothChart({
 
         {/* System Toggle Buttons */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
+          <div className="flex items-center rounded-lg border border-slate-200/80 bg-white/60 p-0.5 text-xs backdrop-blur-xs shadow-xs">
             <button
               type="button"
               onClick={() => setNumberingSystem("universal")}
-              className={`rounded-md px-2.5 py-1 font-semibold transition ${
+              className={`glass-button rounded-md px-2.5 py-1 font-semibold transition ${
                 numberingSystem === "universal"
                   ? "bg-teal-700 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
@@ -81,7 +81,7 @@ export function ToothChart({
             <button
               type="button"
               onClick={() => setNumberingSystem("fdi")}
-              className={`rounded-md px-2.5 py-1 font-semibold transition ${
+              className={`glass-button rounded-md px-2.5 py-1 font-semibold transition ${
                 numberingSystem === "fdi"
                   ? "bg-teal-700 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
@@ -96,7 +96,7 @@ export function ToothChart({
 
       {/* Selected Tooth Live Inspection Pill */}
       {inspectedTooth ? (
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-teal-50/80 px-3 py-2 text-xs text-teal-950 border border-teal-200/60">
+        <div className="glass-card-subtle glass-tint-teal mt-3 flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-xs text-teal-950 border border-teal-200/80 shadow-xs">
           <div className="flex items-center gap-2">
             <span className="font-bold text-teal-800">
               {hoveredTooth ? "Inspecting:" : "Selected:"}
@@ -113,7 +113,7 @@ export function ToothChart({
               <button
                 type="button"
                 onClick={() => onSelectTooth(null)}
-                className="ml-2 rounded border border-teal-300 bg-white px-2 py-0.5 text-[10px] font-bold text-teal-700 hover:bg-teal-50 transition"
+                className="glass-button ml-2 rounded border border-teal-300 bg-white/90 px-2 py-0.5 text-[10px] font-bold text-teal-700 hover:bg-teal-50 transition shadow-xs"
               >
                 Clear Selection
               </button>
@@ -121,7 +121,7 @@ export function ToothChart({
           </div>
         </div>
       ) : (
-        <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 border border-slate-200/60">
+        <div className="glass-card-subtle mt-3 flex items-center justify-between px-3 py-2 text-xs text-slate-500 border border-slate-200/70 shadow-xs">
           <span>Click any tooth to assign to this clinical case record.</span>
           <span className="text-[11px] text-slate-400">No tooth currently selected</span>
         </div>
@@ -157,12 +157,12 @@ export function ToothChart({
                       onMouseEnter={() => setHoveredTooth(tooth)}
                       onMouseLeave={() => setHoveredTooth(null)}
                       title={`${tooth.name} (UNS #${tooth.universal}, FDI ${tooth.fdi})`}
-                      className={`group relative flex ${
+                      className={`glass-button group relative flex ${
                         compact ? "h-8 w-7 sm:h-9 sm:w-8" : "h-10 w-8 sm:h-11 sm:w-9"
                       } flex-col items-center justify-center rounded-lg border text-xs font-bold transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-teal-600 ${
                         isSelected
-                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1"
-                          : "border-slate-200 bg-slate-50/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/60 hover:text-teal-900"
+                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1 scale-105 z-10"
+                          : "border-slate-200/80 bg-white/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/80 hover:text-teal-900 shadow-xs hover:scale-105 hover:z-10"
                       }`}
                       aria-label={`${tooth.name}, Number ${displayLabel}`}
                       aria-pressed={isSelected}
@@ -198,12 +198,12 @@ export function ToothChart({
                       onMouseEnter={() => setHoveredTooth(tooth)}
                       onMouseLeave={() => setHoveredTooth(null)}
                       title={`${tooth.name} (UNS #${tooth.universal}, FDI ${tooth.fdi})`}
-                      className={`group relative flex ${
+                      className={`glass-button group relative flex ${
                         compact ? "h-8 w-7 sm:h-9 sm:w-8" : "h-10 w-8 sm:h-11 sm:w-9"
                       } flex-col items-center justify-center rounded-lg border text-xs font-bold transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-teal-600 ${
                         isSelected
-                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1"
-                          : "border-slate-200 bg-slate-50/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/60 hover:text-teal-900"
+                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1 scale-105 z-10"
+                          : "border-slate-200/80 bg-white/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/80 hover:text-teal-900 shadow-xs hover:scale-105 hover:z-10"
                       }`}
                       aria-label={`${tooth.name}, Number ${displayLabel}`}
                       aria-pressed={isSelected}
@@ -224,11 +224,11 @@ export function ToothChart({
           </div>
 
           {/* Occlusal Plane / Midline Divider */}
-          <div className="relative flex items-center justify-center py-1">
+          <div className="relative flex items-center justify-center py-1.5">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-dashed border-slate-200" />
+              <div className="w-full border-t border-dashed border-teal-300/40" />
             </div>
-            <span className="relative bg-white px-3 text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+            <span className="relative rounded-full border border-slate-200/80 bg-white/80 px-3 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-slate-400 shadow-xs backdrop-blur-xs">
               Occlusal Plane &bull; Dental Midline
             </span>
           </div>
@@ -260,12 +260,12 @@ export function ToothChart({
                       onMouseEnter={() => setHoveredTooth(tooth)}
                       onMouseLeave={() => setHoveredTooth(null)}
                       title={`${tooth.name} (UNS #${tooth.universal}, FDI ${tooth.fdi})`}
-                      className={`group relative flex ${
+                      className={`glass-button group relative flex ${
                         compact ? "h-8 w-7 sm:h-9 sm:w-8" : "h-10 w-8 sm:h-11 sm:w-9"
                       } flex-col items-center justify-center rounded-lg border text-xs font-bold transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-teal-600 ${
                         isSelected
-                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1"
-                          : "border-slate-200 bg-slate-50/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/60 hover:text-teal-900"
+                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1 scale-105 z-10"
+                          : "border-slate-200/80 bg-white/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/80 hover:text-teal-900 shadow-xs hover:scale-105 hover:z-10"
                       }`}
                       aria-label={`${tooth.name}, Number ${displayLabel}`}
                       aria-pressed={isSelected}
@@ -301,12 +301,12 @@ export function ToothChart({
                       onMouseEnter={() => setHoveredTooth(tooth)}
                       onMouseLeave={() => setHoveredTooth(null)}
                       title={`${tooth.name} (UNS #${tooth.universal}, FDI ${tooth.fdi})`}
-                      className={`group relative flex ${
+                      className={`glass-button group relative flex ${
                         compact ? "h-8 w-7 sm:h-9 sm:w-8" : "h-10 w-8 sm:h-11 sm:w-9"
                       } flex-col items-center justify-center rounded-lg border text-xs font-bold transition focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-teal-600 ${
                         isSelected
-                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1"
-                          : "border-slate-200 bg-slate-50/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/60 hover:text-teal-900"
+                          ? "border-teal-700 bg-teal-700 text-white shadow-sm ring-2 ring-teal-600/40 ring-offset-1 scale-105 z-10"
+                          : "border-slate-200/80 bg-white/70 text-slate-800 hover:border-teal-400 hover:bg-teal-50/80 hover:text-teal-900 shadow-xs hover:scale-105 hover:z-10"
                       }`}
                       aria-label={`${tooth.name}, Number ${displayLabel}`}
                       aria-pressed={isSelected}
@@ -329,7 +329,7 @@ export function ToothChart({
       </div>
 
       {/* Anatomical Region Legend */}
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3 text-[11px] text-slate-500">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100/80 pt-3 text-[11px] text-slate-500">
         <div className="flex items-center gap-4">
           <span className="font-semibold text-slate-600">Region Legend:</span>
           <span className="flex items-center gap-1.5">

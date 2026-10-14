@@ -152,10 +152,10 @@ export function PeriodontalChart({
   return (
     <div className="space-y-4">
       {/* 1. Header Bar: Clinical Metrics Overview */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+      <div className="glass-card p-4 shadow-xs">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-teal-700">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50/90 text-teal-700 border border-teal-200/60 shadow-xs">
               <Icon name="chart" size={20} />
             </div>
             <div>
@@ -163,7 +163,7 @@ export function PeriodontalChart({
                 <h3 className="text-sm font-bold text-slate-900">
                   Comprehensive Periodontal Assessment
                 </h3>
-                <span className="rounded bg-teal-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-teal-800">
+                <span className="glass-chip rounded bg-teal-100/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-teal-800 border border-teal-200/80">
                   6-Site Probing Matrix
                 </span>
               </div>
@@ -174,13 +174,13 @@ export function PeriodontalChart({
           </div>
 
           {/* View Mode Toggle */}
-          <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-xs">
+          <div className="flex items-center gap-1 rounded-lg border border-slate-200/80 bg-white/60 p-0.5 text-xs backdrop-blur-xs shadow-xs">
             <button
               type="button"
               onClick={() => setViewMode("compact")}
-              className={`rounded px-2.5 py-1 text-[11px] font-semibold transition ${
+              className={`glass-button rounded px-2.5 py-1 text-[11px] font-semibold transition ${
                 viewMode === "compact"
-                  ? "bg-white text-teal-800 shadow-xs"
+                  ? "bg-teal-700 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -189,9 +189,9 @@ export function PeriodontalChart({
             <button
               type="button"
               onClick={() => setViewMode("full")}
-              className={`rounded px-2.5 py-1 text-[11px] font-semibold transition ${
+              className={`glass-button rounded px-2.5 py-1 text-[11px] font-semibold transition ${
                 viewMode === "full"
-                  ? "bg-white text-teal-800 shadow-xs"
+                  ? "bg-teal-700 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -200,9 +200,9 @@ export function PeriodontalChart({
             <button
               type="button"
               onClick={() => setViewMode("summary")}
-              className={`rounded px-2.5 py-1 text-[11px] font-semibold transition ${
+              className={`glass-button rounded px-2.5 py-1 text-[11px] font-semibold transition ${
                 viewMode === "summary"
-                  ? "bg-white text-teal-800 shadow-xs"
+                  ? "bg-teal-700 text-white shadow-xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -212,14 +212,14 @@ export function PeriodontalChart({
         </div>
 
         {/* Clinical KPI strip */}
-        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3 sm:grid-cols-5">
-          <div className="rounded-lg bg-slate-50 p-2 text-center">
+        <div className="mt-4 grid grid-cols-2 gap-2 border-t border-slate-100/80 pt-3 sm:grid-cols-5">
+          <div className="glass-card-subtle rounded-lg p-2 text-center border border-slate-200/70 shadow-xs">
             <span className="text-[10px] font-bold uppercase text-slate-500">Probed Teeth</span>
             <p className="text-base font-bold text-slate-900">
               {summary.totalProbedTeeth} <span className="text-xs font-normal text-slate-400">/ 32</span>
             </p>
           </div>
-          <div className="rounded-lg bg-slate-50 p-2 text-center">
+          <div className="glass-card-subtle rounded-lg p-2 text-center border border-slate-200/70 shadow-xs">
             <span className="text-[10px] font-bold uppercase text-slate-500">Bleeding on Probing</span>
             <p
               className={`text-base font-bold ${
@@ -234,13 +234,13 @@ export function PeriodontalChart({
               </span>
             </p>
           </div>
-          <div className="rounded-lg bg-slate-50 p-2 text-center">
+          <div className="glass-card-subtle rounded-lg p-2 text-center border border-slate-200/70 shadow-xs">
             <span className="text-[10px] font-bold uppercase text-slate-500">Pockets 4–5 mm</span>
             <p className="text-base font-bold text-amber-600">
               {summary.sitesWithPockets4to5mm} <span className="text-xs font-normal text-slate-400">sites</span>
             </p>
           </div>
-          <div className="rounded-lg bg-slate-50 p-2 text-center">
+          <div className="glass-card-subtle rounded-lg p-2 text-center border border-slate-200/70 shadow-xs">
             <span className="text-[10px] font-bold uppercase text-slate-500">Severe Pockets &ge;6 mm</span>
             <p
               className={`text-base font-bold ${
@@ -252,7 +252,7 @@ export function PeriodontalChart({
               {summary.sitesWithPockets6mmOrMore} <span className="text-xs font-normal text-slate-400">sites</span>
             </p>
           </div>
-          <div className="rounded-lg bg-slate-50 p-2 text-center">
+          <div className="glass-card-subtle rounded-lg p-2 text-center border border-slate-200/70 shadow-xs">
             <span className="text-[10px] font-bold uppercase text-slate-500">Max CAL</span>
             <p className="text-base font-bold text-slate-900">
               {summary.maxAttachmentLossMm !== null ? `${summary.maxAttachmentLossMm} mm` : "—"}
@@ -262,7 +262,7 @@ export function PeriodontalChart({
 
         {/* Clinical Completeness Disclaimer */}
         {!summary.isCompleteExamination && (
-          <div className="mt-3 flex items-center gap-2 rounded-lg bg-amber-50/70 px-3 py-1.5 text-[11px] text-amber-900 border border-amber-200/60">
+          <div className="glass-card-subtle glass-tint-amber mt-3 flex items-center gap-2 rounded-lg px-3 py-1.5 text-[11px] text-amber-900 border border-amber-200/80 shadow-xs">
             <Icon name="alert" size={13} />
             <span>
               <strong>Partial Periodontal Record:</strong> Only {summary.totalProbedTeeth} of 32 permanent teeth currently have recorded sites. Full-mouth periodontal staging requires comprehensive 6-site probing of all present teeth.
@@ -273,7 +273,7 @@ export function PeriodontalChart({
 
       {/* 2. MODE: Tooth Focus (Detailed 6-site Editor) */}
       {viewMode === "compact" && (
-        <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+        <div className="glass-card p-4 shadow-xs">
           {/* Tooth Selector & Navigation Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
@@ -433,7 +433,7 @@ export function PeriodontalChart({
               {/* 6-Site Probing Matrix: Buccal & Lingual */}
               <div className="grid gap-4 md:grid-cols-2">
                 {/* Buccal/Facial Aspect */}
-                <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                <div className="glass-card-subtle rounded-xl border border-slate-200/80 p-3.5 shadow-xs">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-teal-800">
                       Buccal (Facial) Aspect
@@ -567,7 +567,7 @@ export function PeriodontalChart({
                 </div>
 
                 {/* Lingual/Palatal Aspect */}
-                <div className="rounded-xl border border-slate-200 bg-white p-3.5">
+                <div className="glass-card-subtle rounded-xl border border-slate-200/80 p-3.5 shadow-xs">
                   <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                     <span className="text-xs font-bold uppercase tracking-wider text-teal-800">
                       {toothInfo?.arch === "maxillary" ? "Palatal" : "Lingual"} Aspect
@@ -862,13 +862,13 @@ export function PeriodontalChart({
 
       {/* 4. MODE: Clinical Summary View */}
       {viewMode === "summary" && (
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs space-y-4">
+        <div className="glass-card p-5 shadow-xs space-y-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-teal-800">
             Periodontal Finding Summary &amp; Risk Stratification
           </h4>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50/50">
+            <div className="glass-card-subtle rounded-lg border border-slate-200/80 p-3 shadow-xs">
               <span className="text-[10px] font-bold uppercase text-slate-500">BOP Inflammatory Index</span>
               <p className="mt-1 text-lg font-bold text-slate-900">
                 {summary.bleedingOnProbingPercentage}%
@@ -882,7 +882,7 @@ export function PeriodontalChart({
               </p>
             </div>
 
-            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50/50">
+            <div className="glass-card-subtle rounded-lg border border-slate-200/80 p-3 shadow-xs">
               <span className="text-[10px] font-bold uppercase text-slate-500">Periodontal Pocket Count</span>
               <p className="mt-1 text-lg font-bold text-slate-900">
                 {summary.sitesWithPockets4to5mm + summary.sitesWithPockets6mmOrMore} sites
@@ -892,7 +892,7 @@ export function PeriodontalChart({
               </p>
             </div>
 
-            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50/50">
+            <div className="glass-card-subtle rounded-lg border border-slate-200/80 p-3 shadow-xs">
               <span className="text-[10px] font-bold uppercase text-slate-500">Attachment Loss &amp; Furcation</span>
               <p className="mt-1 text-lg font-bold text-slate-900">
                 Max CAL: {summary.maxAttachmentLossMm !== null ? `${summary.maxAttachmentLossMm} mm` : "None"}

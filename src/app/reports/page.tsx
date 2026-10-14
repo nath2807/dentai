@@ -36,7 +36,7 @@ export default function ReportsPage() {
           </div>
           <Link
             href="/cases"
-            className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+            className="glass-button inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-300/80 bg-white/70 px-3.5 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800 shadow-xs"
           >
             <Icon name="folder" size={15} />
             View All Cases
@@ -67,8 +67,8 @@ export default function ReportsPage() {
 
         {/* Reports List */}
         {analyzedCases.length === 0 ? (
-          <div className="flex min-h-[300px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-50 text-teal-700">
+          <div className="glass-card flex min-h-[300px] flex-col items-center justify-center border border-dashed border-teal-300/60 p-12 text-center shadow-xs">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-50/90 text-teal-700 border border-teal-100 shadow-xs">
               <Icon name="report" size={26} />
             </div>
             <h2 className="mt-4 text-base font-bold text-slate-950">
@@ -79,17 +79,17 @@ export default function ReportsPage() {
             </p>
             <Link
               href="/cases/new"
-              className="mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800"
+              className="glass-button glass-shine mt-5 inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-semibold text-white transition hover:bg-teal-800 shadow-xs"
             >
               <Icon name="plus" size={16} />
               New Clinical Case
             </Link>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.02)]">
+          <div className="glass-card overflow-hidden shadow-xs border border-slate-200/80">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <thead className="border-b border-slate-200/80 bg-slate-50/60 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3.5">Case ID</th>
                     <th className="px-4 py-3.5">Date</th>
@@ -99,7 +99,7 @@ export default function ReportsPage() {
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100/80 text-slate-700">
                   {analyzedCases.map((item) => {
                     const tooth =
                       item.caseData.toothAssessment?.toothNumber ||
@@ -110,7 +110,7 @@ export default function ReportsPage() {
                     const isStale = item.analysisStatus === "stale";
 
                     return (
-                      <tr key={item.id} className="transition hover:bg-slate-50/70">
+                      <tr key={item.id} className="transition hover:bg-white/60">
                         <td className="px-5 py-4 font-bold text-slate-950">
                           <Link
                             href={`/cases/${encodeURIComponent(item.id)}/report`}
@@ -140,7 +140,7 @@ export default function ReportsPage() {
                               <span className="font-semibold text-slate-900">
                                 {leadingDiag.diagnosis}
                               </span>
-                              <span className="ml-1.5 inline-block rounded bg-teal-50 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800 border border-teal-200">
+                              <span className="glass-chip ml-1.5 inline-block rounded bg-teal-50/90 px-1.5 py-0.5 text-[10px] font-semibold text-teal-800 border border-teal-200/90 shadow-xs">
                                 {leadingDiag.diagnosticCategory}
                               </span>
                             </div>
@@ -151,12 +151,12 @@ export default function ReportsPage() {
                         <td className="px-4 py-4">
                           <div className="flex flex-col gap-1 items-start">
                             <span
-                              className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border ${
+                              className={`glass-chip inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold border shadow-xs ${
                                 item.reviewStatus === "reviewed" || item.status === "reviewed"
-                                  ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                                  ? "border-emerald-300 bg-emerald-50/90 text-emerald-800"
                                   : item.reviewStatus === "needs_review"
-                                  ? "border-amber-300 bg-amber-50 text-amber-800"
-                                  : "border-slate-300 bg-slate-50 text-slate-700"
+                                  ? "border-amber-300 bg-amber-50/90 text-amber-800"
+                                  : "border-slate-300 bg-slate-50/90 text-slate-700"
                               }`}
                             >
                               {item.reviewStatus === "reviewed" || item.status === "reviewed"
@@ -166,7 +166,7 @@ export default function ReportsPage() {
                                 : "Pending"}
                             </span>
                             {isStale && (
-                              <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[9px] font-bold text-amber-900">
+                              <span className="glass-chip inline-flex items-center rounded-full border border-amber-300 bg-amber-50/90 px-2.5 py-0.5 text-[9px] font-bold text-amber-900 shadow-xs">
                                 ⚠️ Stale Data
                               </span>
                             )}
@@ -176,7 +176,7 @@ export default function ReportsPage() {
                           <div className="flex items-center justify-end gap-2">
                             <Link
                               href={`/cases/${encodeURIComponent(item.id)}/report`}
-                              className="rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
+                              className="glass-button glass-shine rounded-lg bg-teal-700 px-3 py-1.5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800"
                             >
                               View / Print Report
                             </Link>

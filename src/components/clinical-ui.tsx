@@ -261,12 +261,12 @@ export function CloudSyncBadge() {
     return (
       <Link
         href="/settings"
-        className="block rounded-lg border border-teal-200/90 bg-teal-50/80 p-2.5 transition hover:bg-teal-100/70"
+        className="glass-chip block rounded-lg border border-teal-200/90 bg-teal-50/70 p-2.5 backdrop-blur-md transition hover:bg-teal-100/80 shadow-xs"
         title="Manage cloud storage and account settings"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-800 text-[10px] font-bold text-white uppercase">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-800 text-[10px] font-bold text-white uppercase shadow-xs">
               {syncState.currentUser.name.slice(0, 2)}
             </span>
             <div className="min-w-0 truncate">
@@ -290,7 +290,7 @@ export function CloudSyncBadge() {
   return (
     <Link
       href="/settings"
-      className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50/90 p-2 transition hover:bg-slate-100 text-xs"
+      className="glass-chip flex items-center justify-between rounded-lg border border-slate-200/80 bg-white/70 p-2 backdrop-blur-md transition hover:bg-white/90 text-xs shadow-xs"
       title="Configure cloud storage or sign in"
     >
       <div className="flex items-center gap-1.5 text-slate-600">
@@ -312,10 +312,10 @@ export function AppShell({
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900">
+    <div className="min-h-screen text-slate-900 bg-transparent">
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-slate-200/90 bg-white lg:flex shadow-[1px_0_4px_rgba(15,23,42,0.02)]">
-        <div className="flex h-20 items-center border-b border-slate-100 px-6">
+      <aside className="glass-panel fixed inset-y-0 left-0 z-30 hidden w-64 flex-col lg:flex !rounded-none !border-y-0 !border-l-0 border-r border-slate-200/80 shadow-[4px_0_24px_rgba(15,23,42,0.03)]">
+        <div className="flex h-20 items-center border-b border-slate-100/80 px-6">
           <Link
             href="/"
             className="flex items-center gap-3 group focus:outline-none"
@@ -345,10 +345,10 @@ export function AppShell({
                   <Link
                     key={item.label}
                     href={item.href}
-                    className={`flex h-10 items-center gap-3 rounded-lg px-3 text-xs font-semibold transition ${
+                    className={`glass-chip flex h-10 items-center gap-3 rounded-lg px-3 text-xs font-semibold transition ${
                       isActive
-                        ? "bg-teal-50/90 text-teal-900 border border-teal-200/60 shadow-xs"
-                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-950"
+                        ? "bg-teal-50/90 text-teal-900 border border-teal-300/80 shadow-xs ring-1 ring-teal-500/20"
+                        : "text-slate-600 hover:bg-white/80 hover:text-slate-950 border border-transparent"
                     }`}
                   >
                     <Icon
@@ -363,7 +363,7 @@ export function AppShell({
             </div>
           </div>
 
-          <div className="pt-2 border-t border-slate-100 px-3">
+          <div className="pt-2 border-t border-slate-100/80 px-3">
             <Link
               href="/"
               className="flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-teal-800 transition"
@@ -380,7 +380,7 @@ export function AppShell({
         </div>
 
         {/* Workspace Governance & Safety Card */}
-        <div className="m-4 rounded-xl bg-slate-50/80 p-3.5 border border-slate-200/80 text-xs">
+        <div className="m-4 rounded-xl glass-card-subtle p-3.5 border border-slate-200/80 text-xs">
           <div className="flex items-center gap-1.5 text-teal-800">
             <Icon name="shield" size={15} />
             <span className="text-[11px] font-bold uppercase tracking-wide">
@@ -399,12 +399,12 @@ export function AppShell({
 
       {/* Mobile Top Header */}
       <div className="lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-4 backdrop-blur-md lg:hidden">
+        <header className="glass-pill sticky top-0 z-20 flex h-16 items-center justify-between !rounded-none !border-x-0 !border-t-0 border-b border-slate-200/80 px-4 lg:hidden">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setMobileDrawerOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50"
+              className="flex h-10 w-10 items-center justify-center rounded-lg border border-slate-200/80 bg-white/70 text-slate-700 hover:bg-white transition"
               aria-label="Open workspace menu"
             >
               <Icon name="menu" size={20} />
@@ -424,7 +424,7 @@ export function AppShell({
 
           <Link
             href="/cases/new"
-            className="flex h-9 items-center gap-1.5 rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white shadow-xs hover:bg-teal-800"
+            className="glass-button glass-shine flex h-9 items-center gap-1.5 rounded-lg bg-teal-700 px-3 text-xs font-semibold text-white shadow-xs hover:bg-teal-800"
           >
             <Icon name="plus" size={14} />
             <span>New Case</span>
@@ -435,13 +435,13 @@ export function AppShell({
         {mobileDrawerOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div
-              className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity"
+              className="glass-modal-backdrop fixed inset-0"
               onClick={() => setMobileDrawerOpen(false)}
               aria-hidden="true"
             />
-            <div className="fixed inset-y-0 left-0 w-72 bg-white p-5 shadow-2xl flex flex-col justify-between">
+            <div className="glass-modal-content glass-panel fixed inset-y-0 left-0 w-72 p-5 shadow-2xl flex flex-col justify-between !rounded-none !border-y-0 !border-l-0">
               <div>
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center justify-between border-b border-slate-100/80 pb-4">
                   <div className="flex items-center gap-2.5">
                     <Logo size={32} />
                     <div>
@@ -456,7 +456,7 @@ export function AppShell({
                   <button
                     type="button"
                     onClick={() => setMobileDrawerOpen(false)}
-                    className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-slate-100"
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-slate-500 hover:bg-white/80 transition"
                     aria-label="Close navigation drawer"
                   >
                     <Icon name="close" size={18} />
@@ -469,21 +469,21 @@ export function AppShell({
                       key={item.label}
                       href={item.href}
                       onClick={() => setMobileDrawerOpen(false)}
-                      className={`flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition ${
+                      className={`glass-chip flex h-11 items-center gap-3 rounded-lg px-3 text-sm font-semibold transition ${
                         activeItem === item.label
-                          ? "bg-teal-50 text-teal-900 border border-teal-200"
-                          : "text-slate-600 hover:bg-slate-50"
+                          ? "bg-teal-50/90 text-teal-900 border border-teal-300 shadow-xs"
+                          : "text-slate-600 hover:bg-white/80 border border-transparent"
                       }`}
                     >
                       <Icon name={item.icon} size={18} />
                       {item.label}
                     </Link>
                   ))}
-                  <div className="pt-4 border-t border-slate-100">
+                  <div className="pt-4 border-t border-slate-100/80">
                     <Link
                       href="/"
                       onClick={() => setMobileDrawerOpen(false)}
-                      className="flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                      className="flex h-10 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-slate-600 hover:bg-white/80 transition"
                     >
                       <span>←</span>
                       <span>Public Website</span>
@@ -495,7 +495,7 @@ export function AppShell({
               <div className="space-y-3">
                 <CloudSyncBadge />
 
-                <div className="rounded-xl bg-slate-50 p-3 border border-slate-200 text-xs">
+                <div className="rounded-xl glass-card-subtle p-3 border border-slate-200/80 text-xs">
                   <span className="font-bold text-teal-800 text-[11px] uppercase">
                     Assistive Decision Support
                   </span>
@@ -529,12 +529,12 @@ export function StatCard({
   icon: IconName;
 }) {
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.03)] transition hover:border-slate-300">
+    <div className="glass-card p-5 transition hover:shadow-md">
       <div className="flex items-start justify-between">
         <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
           {label}
         </p>
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-teal-800 border border-slate-100">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50/80 text-teal-800 border border-slate-100">
           <Icon name={icon} size={16} />
         </span>
       </div>
@@ -554,16 +554,16 @@ export function LikelihoodBadge({
   likelihood: "high" | "moderate" | "low" | string;
 }) {
   const styles: Record<string, string> = {
-    high: "bg-teal-50 text-teal-900 border-teal-300 font-bold",
-    moderate: "bg-amber-50 text-amber-900 border-amber-300 font-semibold",
-    low: "bg-slate-100 text-slate-700 border-slate-200 font-medium",
+    high: "bg-teal-50/90 text-teal-900 border-teal-300 font-bold",
+    moderate: "bg-amber-50/90 text-amber-900 border-amber-300 font-semibold",
+    low: "bg-slate-100/90 text-slate-700 border-slate-200 font-medium",
   };
   const key = likelihood.toLowerCase();
-  const cls = styles[key] || "bg-slate-100 text-slate-700 border-slate-200";
+  const cls = styles[key] || "bg-slate-100/90 text-slate-700 border-slate-200";
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] capitalize tracking-wide ${cls}`}
+      className={`glass-chip inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] capitalize tracking-wide shadow-xs ${cls}`}
     >
       {likelihood} likelihood
     </span>
@@ -581,7 +581,7 @@ export function CategoryBadge({ category }: { category: string }) {
   };
 
   return (
-    <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 border border-slate-200/80">
+    <span className="glass-chip inline-flex items-center rounded-md bg-slate-100/80 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 border border-slate-200/80">
       {labels[category] || category}
     </span>
   );
@@ -593,7 +593,7 @@ export function ToothPill({ toothNumber }: { toothNumber?: string }) {
 
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-md bg-teal-50 px-2.5 py-1 text-xs font-bold text-teal-900 border border-teal-200"
+      className="glass-chip inline-flex items-center gap-1 rounded-md bg-teal-50/90 px-2.5 py-1 text-xs font-bold text-teal-900 border border-teal-200/90 shadow-xs"
       title={formatted}
     >
       <Icon name="tooth" size={13} className="text-teal-700" />

@@ -16,6 +16,19 @@
   --clinical-amber: #d97706;
   --clinical-rose: #e11d48;
   --clinical-emerald: #059669;
+
+  /* Liquid Glass System Tokens */
+  --glass-blur: 20px;
+  --glass-saturate: 180%;
+  --glass-fill: rgba(255, 255, 255, 0.16);
+  --glass-fill-strong: rgba(255, 255, 255, 0.82);
+  --glass-border: 1px solid rgba(226, 232, 240, 0.8);
+  --glass-highlight: inset 0 1px 1px 0 rgba(255, 255, 255, 0.85), inset 1px 0 1px 0 rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 8px 32px -4px rgba(15, 23, 42, 0.05), 0 2px 8px -1px rgba(15, 23, 42, 0.03);
+  --glass-radius: 1rem;
+  --glass-tint-teal: rgba(13, 148, 136, 0.08);
+  --glass-tint-amber: rgba(217, 119, 6, 0.08);
+  --glass-tint-rose: rgba(225, 29, 72, 0.08);
 }
 
 @theme inline {
@@ -37,13 +50,207 @@ body {
   box-sizing: border-box;
 }
 
-/* Accessible focus ring for all interactive elements */
+/* 1a. Liquid Glass Background Layer */
+.liquid-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-color: var(--background);
+  background-image:
+    radial-gradient(circle at 12% 16%, rgba(13, 148, 136, 0.07) 0px, transparent 42%),
+    radial-gradient(circle at 86% 12%, rgba(15, 23, 42, 0.04) 0px, transparent 38%),
+    radial-gradient(circle at 50% 55%, rgba(253, 251, 247, 0.95) 0px, transparent 55%),
+    radial-gradient(circle at 14% 84%, rgba(13, 148, 136, 0.05) 0px, transparent 40%),
+    radial-gradient(circle at 88% 82%, rgba(15, 23, 42, 0.05) 0px, transparent 46%);
+  background-size: 130% 130%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .liquid-bg {
+    animation: liquid-drift 26s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes liquid-drift {
+  0% {
+    background-position: 0% 0%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 50% 100%;
+  }
+}
+
+/* 1c. Glass Surfaces (Solid Fallback first) */
+.glass-card,
+.glass-panel {
+  background-color: var(--clinical-surface);
+  border: 1px solid var(--clinical-border);
+  border-radius: var(--glass-radius);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+.glass-pill {
+  background-color: var(--clinical-surface);
+  border: 1px solid var(--clinical-border);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
+/* Enhanced Glass with backdrop-filter support */
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .glass-card {
+    background-color: var(--glass-fill-strong);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid rgba(226, 232, 240, 0.82);
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
+  }
+
+  .glass-card-subtle {
+    background-color: var(--glass-fill);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid rgba(226, 232, 240, 0.65);
+    box-shadow: var(--glass-highlight), 0 4px 16px -2px rgba(15, 23, 42, 0.03);
+  }
+
+  .glass-panel {
+    background-color: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: var(--glass-highlight), var(--glass-shadow);
+  }
+
+  .glass-pill {
+    background-color: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(226, 232, 240, 0.85);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.9), 0 4px 16px -2px rgba(15, 23, 42, 0.05);
+  }
+
+  .glass-tint-teal {
+    background-color: rgba(240, 253, 250, 0.78);
+    border-color: rgba(13, 148, 136, 0.28);
+  }
+
+  .glass-tint-amber {
+    background-color: rgba(254, 243, 199, 0.75);
+    border-color: rgba(217, 119, 6, 0.32);
+  }
+
+  .glass-tint-rose {
+    background-color: rgba(255, 241, 242, 0.75);
+    border-color: rgba(225, 29, 72, 0.32);
+  }
+
+  .glass-tint-indigo {
+    background-color: rgba(238, 242, 255, 0.78);
+    border-color: rgba(99, 102, 241, 0.32);
+  }
+}
+
+/* 1d. Interactive Elements: Buttons & Chips */
+.glass-button,
+.glass-chip {
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+              border-color 0.15s ease,
+              background-color 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-button:hover,
+.glass-chip:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 4px 14px -2px rgba(13, 148, 136, 0.18);
+  border-color: rgba(13, 148, 136, 0.45);
+}
+
+.glass-button:active,
+.glass-chip:active {
+  transform: translateY(0px) scale(0.99);
+}
+
+/* Shine sweep effect for primary actions */
+.glass-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-shine::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 25%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.32) 50%,
+    transparent 100%
+  );
+  transform: rotate(30deg);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.glass-shine:hover::after {
+  opacity: 1;
+  animation: shine-sweep 0.8s ease-in-out;
+}
+
+@keyframes shine-sweep {
+  0% {
+    left: -60%;
+  }
+  100% {
+    left: 140%;
+  }
+}
+
+/* Modals and Drawers Fluid Entrance */
+.glass-modal-backdrop {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background-color: rgba(15, 23, 42, 0.38);
+  animation: modal-fade-in 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-modal-content {
+  animation: modal-spring-in 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modal-spring-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* 1f. Accessible Focus Ring */
 :focus-visible {
-  outline: 2px solid #0d9488;
+  outline: 2px solid var(--brand-teal);
   outline-offset: 2px;
 }
 
-/* Reduced motion support */
+/* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,
@@ -53,9 +260,61 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .liquid-bg {
+    animation: none !important;
+  }
+
+  .glass-button,
+  .glass-chip {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .glass-shine::after {
+    display: none !important;
+  }
+
+  .glass-modal-backdrop,
+  .glass-modal-content {
+    animation: none !important;
+  }
 }
 
-/* Custom clinical badge utilities */
+/* Reduced Transparency Support */
+@media (prefers-reduced-transparency: reduce) {
+  .liquid-bg {
+    display: none !important;
+  }
+
+  .glass-card,
+  .glass-card-subtle,
+  .glass-panel,
+  .glass-pill {
+    background-color: var(--clinical-surface) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  .glass-tint-teal {
+    background-color: var(--brand-teal-light) !important;
+  }
+
+  .glass-tint-amber {
+    background-color: #fffbeb !important;
+  }
+
+  .glass-tint-rose {
+    background-color: #fff1f2 !important;
+  }
+
+  .glass-tint-indigo {
+    background-color: #eef2ff !important;
+  }
+}
+
+/* Custom Clinical Pattern Utilities */
 .clinical-grid-pattern {
   background-size: 24px 24px;
   background-image: linear-gradient(to right, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
@@ -68,12 +327,13 @@ body {
                     linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
 }
 
-/* Print Styles */
+/* 1g. Print Styles (Clean Reset) */
 @media print {
   aside,
   header.no-print,
   nav.no-print,
-  .no-print {
+  .no-print,
+  .liquid-bg {
     display: none !important;
   }
 
@@ -81,6 +341,18 @@ body {
     background: #ffffff !important;
     color: #000000 !important;
     font-size: 10pt !important;
+  }
+
+  .glass-card,
+  .glass-card-subtle,
+  .glass-panel,
+  .glass-pill {
+    background-color: #ffffff !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    border: 1px solid #000000 !important;
+    border-radius: 0 !important;
   }
 
   .print-page {
@@ -96,3 +368,4 @@ body {
     page-break-inside: avoid;
   }
 }
+

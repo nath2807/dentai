@@ -154,7 +154,7 @@ export default function CasesPage() {
                 type="button"
                 onClick={handleCloudSync}
                 disabled={isSyncing}
-                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-white px-3.5 text-xs font-bold text-teal-800 transition hover:bg-teal-50 disabled:opacity-50"
+                className="glass-button inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200/80 bg-white/80 px-3.5 text-xs font-bold text-teal-800 shadow-xs transition hover:bg-white disabled:opacity-50"
               >
                 <Icon name="sync" size={14} className={isSyncing ? "animate-spin" : ""} />
                 <span>{isSyncing ? "Syncing..." : "Sync Cloud"}</span>
@@ -163,14 +163,14 @@ export default function CasesPage() {
             <button
               type="button"
               onClick={handleLoadBenchmarks}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200 bg-teal-50 px-3.5 text-xs font-bold text-teal-900 transition hover:bg-teal-100"
+              className="glass-button inline-flex h-9 items-center justify-center gap-1.5 rounded-lg border border-teal-200/80 bg-teal-50/80 px-3.5 text-xs font-bold text-teal-900 shadow-xs transition hover:bg-teal-100/90"
             >
               <Icon name="spark" size={14} />
               <span>Seed Reference Benchmarks</span>
             </button>
             <Link
               href="/cases/new"
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs transition hover:bg-teal-800"
+              className="glass-button glass-shine inline-flex h-9 items-center justify-center gap-1.5 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs transition hover:bg-teal-800"
             >
               <Icon name="plus" size={14} />
               <span>New Clinical Case</span>
@@ -179,7 +179,7 @@ export default function CasesPage() {
         </div>
 
         {/* Local Storage & Non-Autonomous Mode Notice */}
-        <div className="flex items-start justify-between gap-3 rounded-xl border border-teal-200/90 bg-teal-50/70 p-4 text-xs text-teal-950">
+        <div className="glass-card-subtle glass-tint-teal flex items-start justify-between gap-3 rounded-xl p-4 text-xs text-teal-950">
           <div className="flex items-start gap-2.5">
             <Icon name="shield" size={17} className="text-teal-700 shrink-0 mt-0.5" />
             <div>
@@ -226,7 +226,7 @@ export default function CasesPage() {
         </div>
 
         {/* Filter & Search Bar */}
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="glass-card flex flex-col gap-3 rounded-xl p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative flex-1">
             <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
               <Icon name="search" size={16} />
@@ -236,7 +236,7 @@ export default function CasesPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by Case ID, tooth number, symptoms, or diagnosis..."
-              className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50/50 pl-9 pr-3 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:ring-2 focus:ring-teal-100"
+              className="h-10 w-full rounded-lg border border-slate-200/80 bg-white/70 pl-9 pr-3 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-600 focus:bg-white focus:ring-2 focus:ring-teal-100"
             />
           </div>
 
@@ -252,10 +252,10 @@ export default function CasesPage() {
                 key={tab.id}
                 type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                className={`glass-button rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
                   statusFilter === tab.id
                     ? "bg-teal-700 text-white shadow-xs"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
+                    : "bg-white/60 text-slate-600 hover:bg-white/90 border border-slate-200/60"
                 }`}
               >
                 {tab.label}
@@ -266,8 +266,8 @@ export default function CasesPage() {
 
         {/* Cases Table / Empty State */}
         {filteredCases.length === 0 ? (
-          <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center">
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-teal-50 text-teal-800 border border-teal-100">
+          <div className="glass-card flex min-h-[320px] flex-col items-center justify-center rounded-2xl border-dashed border-slate-300/80 p-12 text-center">
+            <div className="glass-card-subtle flex h-14 w-14 items-center justify-center rounded-full text-teal-800 border border-teal-200/80">
               <Icon name="folder" size={26} />
             </div>
             <h2 className="mt-4 text-base font-bold text-slate-950">
@@ -283,7 +283,7 @@ export default function CasesPage() {
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <Link
                 href="/cases/new"
-                className="inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs hover:bg-teal-800 transition"
+                className="glass-button glass-shine inline-flex h-10 items-center gap-2 rounded-lg bg-teal-700 px-4 text-xs font-bold text-white shadow-xs hover:bg-teal-800 transition"
               >
                 <Icon name="plus" size={15} />
                 Create New Case
@@ -291,7 +291,7 @@ export default function CasesPage() {
               <button
                 type="button"
                 onClick={handleLoadBenchmarks}
-                className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-bold text-slate-700 hover:bg-slate-50 transition"
+                className="glass-button inline-flex h-10 items-center gap-2 rounded-lg border border-slate-300/80 bg-white/80 px-4 text-xs font-bold text-slate-700 hover:bg-white transition"
               >
                 <Icon name="spark" size={15} />
                 Seed Reference Benchmarks
@@ -299,10 +299,10 @@ export default function CasesPage() {
             </div>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs">
+          <div className="glass-card overflow-hidden rounded-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <thead className="border-b border-slate-200/80 bg-slate-50/60 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
                     <th className="px-5 py-3.5">Case Identification</th>
                     <th className="px-4 py-3.5">Tooth / Region</th>
@@ -312,7 +312,7 @@ export default function CasesPage() {
                     <th className="px-5 py-3.5 text-right">Clinical Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-slate-700">
+                <tbody className="divide-y divide-slate-100/80 text-slate-700">
                   {filteredCases.map((c) => {
                     const toothNum =
                       c.caseData.toothAssessment?.toothNumber ||
@@ -329,7 +329,7 @@ export default function CasesPage() {
                     return (
                       <tr
                         key={c.id}
-                        className="transition hover:bg-slate-50/80"
+                        className="transition hover:bg-white/60"
                       >
                         {/* Case ID & Date */}
                         <td className="px-5 py-4">
@@ -396,22 +396,22 @@ export default function CasesPage() {
                         {/* Review Status */}
                         <td className="px-4 py-4 whitespace-nowrap">
                           {isStale ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-300">
+                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-amber-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 border border-amber-300/80">
                               <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
                               Stale Analysis
                             </span>
                           ) : isReviewed ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-300">
+                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-emerald-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800 border border-emerald-300/80">
                               <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
                               Clinician Verified
                             </span>
                           ) : c.analysis ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800 border border-teal-300">
+                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-teal-50/90 px-2.5 py-0.5 text-[11px] font-semibold text-teal-800 border border-teal-300/80">
                               <span className="h-1.5 w-1.5 rounded-full bg-teal-600" />
                               Needs Review
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-medium text-slate-600 border border-slate-200">
+                            <span className="glass-chip inline-flex items-center gap-1 rounded-full bg-slate-100/90 px-2.5 py-0.5 text-[11px] font-medium text-slate-600 border border-slate-200/80">
                               Draft Intake
                             </span>
                           )}
@@ -422,7 +422,7 @@ export default function CasesPage() {
                           <div className="inline-flex items-center gap-1.5">
                             <Link
                               href={`/cases/${encodeURIComponent(c.id)}`}
-                              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                              className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2.5 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
                               title="Open case workspace"
                             >
                               Open
@@ -430,7 +430,7 @@ export default function CasesPage() {
                             {c.analysis && (
                               <Link
                                 href={`/cases/${encodeURIComponent(c.id)}/report`}
-                                className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                                className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
                                 title="Print clinical report"
                               >
                                 <Icon name="printer" size={14} />
@@ -438,7 +438,7 @@ export default function CasesPage() {
                             )}
                             <Link
                               href={`/cases/new?id=${encodeURIComponent(c.id)}`}
-                              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
+                              className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-slate-700 hover:border-teal-400 hover:text-teal-800 transition"
                               title="Edit clinical findings"
                             >
                               <Icon name="edit" size={14} />
@@ -446,7 +446,7 @@ export default function CasesPage() {
                             <button
                               type="button"
                               onClick={() => setCaseToDelete(c)}
-                              className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-2 text-xs font-semibold text-red-600 hover:border-red-300 hover:bg-red-50 transition"
+                              className="glass-button inline-flex h-8 items-center rounded-lg border border-slate-200/80 bg-white/80 px-2 text-xs font-semibold text-red-600 hover:border-red-300 hover:bg-red-50 transition"
                               title="Delete case"
                             >
                               <Icon name="trash" size={14} />
@@ -466,12 +466,12 @@ export default function CasesPage() {
         {caseToDelete && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
             <div
-              className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity"
+              className="glass-modal-backdrop fixed inset-0 transition-opacity"
               onClick={() => setCaseToDelete(null)}
               aria-hidden="true"
             />
-            <div className="relative w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 mb-4">
+            <div className="glass-modal-content relative w-full max-w-md rounded-2xl p-6 shadow-2xl">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 mb-4 border border-red-200/60">
                 <Icon name="trash" size={22} />
               </div>
               <h3 className="text-base font-bold text-slate-950">
@@ -484,14 +484,14 @@ export default function CasesPage() {
                 <button
                   type="button"
                   onClick={() => setCaseToDelete(null)}
-                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                  className="glass-button rounded-lg border border-slate-300/80 bg-white/80 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-white"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={confirmDelete}
-                  className="rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-xs"
+                  className="glass-button glass-shine rounded-lg bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700 shadow-xs"
                 >
                   Confirm Delete
                 </button>

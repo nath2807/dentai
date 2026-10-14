@@ -412,7 +412,7 @@ export default function CaseForm() {
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-6" noValidate>
       {/* Editing Existing Case Notice Banner */}
       {editingCase && (
-        <div className="flex items-start justify-between gap-3 rounded-xl border border-teal-200 bg-teal-50/80 p-4 text-xs text-teal-950">
+        <div className="glass-card-subtle glass-tint-teal flex items-start justify-between gap-3 p-4 text-xs text-teal-950">
           <div>
             <span className="font-bold">Editing Case {editingCase.id}:</span> You are modifying a saved clinical consultation. Saving changes without re-analyzing will mark the diagnostic assessment as <strong className="text-amber-800">stale</strong> until re-analyzed.
           </div>
@@ -426,7 +426,7 @@ export default function CaseForm() {
       )}
 
       {/* Clinician Guidance Notice */}
-      <div className="flex items-start gap-2.5 rounded-lg border border-teal-100 bg-teal-50/70 px-4 py-3 text-xs leading-5 text-teal-950">
+      <div className="glass-card-subtle glass-tint-teal flex items-start gap-2.5 px-4 py-3 text-xs leading-5 text-teal-950">
         <Icon name="folder" size={16} />
         <div>
           <span className="font-semibold">Clinical workspace notice:</span> Complete the sections relevant to this consultation. Unfilled objective fields will be explicitly categorized as unobserved/missing rather than inferred.
@@ -434,21 +434,21 @@ export default function CaseForm() {
       </div>
 
       {/* Sticky Section Navigator */}
-      <div className="sticky top-20 z-10 -mx-1 mb-6 overflow-x-auto rounded-xl border border-slate-200/90 bg-white/95 p-2 backdrop-blur-md shadow-xs sm:mx-0">
+      <div className="glass-pill sticky top-20 z-10 -mx-1 mb-6 overflow-x-auto p-2 sm:mx-0 shadow-md">
         <div className="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold">
           <span className="px-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Jump:</span>
-          <a href="#sec-case" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">1. Info</a>
-          <a href="#sec-complaint" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">2. Complaint</a>
-          <a href="#sec-pain" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">3. Pain</a>
-          <a href="#sec-tooth" className="rounded-lg px-2.5 py-1 bg-teal-50 text-teal-800 font-bold border border-teal-200/60 hover:bg-teal-100 transition">4. Tooth Chart</a>
-          <a href="#sec-pulpal" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">5. Pulpal</a>
-          <a href="#sec-periapical" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">6. Periapical</a>
-          <a href="#sec-periodontal" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">7. Periodontal</a>
-          <a href="#sec-hard-tissue" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">8. Hard Tissue</a>
-          <a href="#sec-medical" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">9. Medical</a>
-          <a href="#sec-dental-history" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">10. Dental History</a>
-          <a href="#sec-investigations" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">11. Investigations</a>
-          <a href="#sec-radiograph" className="rounded-lg px-2.5 py-1 text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition">12. Radiograph</a>
+          <a href="#sec-case" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">1. Info</a>
+          <a href="#sec-complaint" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">2. Complaint</a>
+          <a href="#sec-pain" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">3. Pain</a>
+          <a href="#sec-tooth" className="glass-chip rounded-lg px-2.5 py-1 bg-teal-50/90 text-teal-900 font-bold border border-teal-300/80 hover:bg-teal-100 transition shadow-xs">4. Tooth Chart</a>
+          <a href="#sec-pulpal" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">5. Pulpal</a>
+          <a href="#sec-periapical" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">6. Periapical</a>
+          <a href="#sec-periodontal" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">7. Periodontal</a>
+          <a href="#sec-hard-tissue" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">8. Hard Tissue</a>
+          <a href="#sec-medical" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">9. Medical</a>
+          <a href="#sec-dental-history" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">10. Dental History</a>
+          <a href="#sec-investigations" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">11. Investigations</a>
+          <a href="#sec-radiograph" className="glass-chip rounded-lg px-2.5 py-1 text-slate-600 hover:bg-white/90 hover:text-slate-900 transition">12. Radiograph</a>
         </div>
       </div>
 
@@ -1010,19 +1010,19 @@ export default function CaseForm() {
       </SectionContainer>
 
       {/* 15. Radiograph Attachment */}
-      <section id="sec-radiograph" className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7 scroll-mt-24">
+      <section id="sec-radiograph" className="glass-card p-5 sm:p-7 scroll-mt-24">
         <div className="flex gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">15</span>
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50/90 text-xs font-bold text-teal-800 border border-teal-200/80 shadow-xs">15</span>
           <div>
             <h2 className="text-base font-semibold text-slate-950">Radiograph</h2>
             <p className="mt-1 text-sm leading-5 text-slate-500">Attach an image file if one is available for clinician reference.</p>
           </div>
         </div>
-        <label htmlFor="radiograph" className="mt-6 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-6 py-8 text-center transition hover:border-teal-400 hover:bg-teal-50/30">
+        <label htmlFor="radiograph" className="mt-6 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-teal-300/80 bg-white/40 px-6 py-8 text-center transition hover:border-teal-500 hover:bg-teal-50/40 backdrop-blur-xs">
           {radiograph?.dataUrl ? (
-            <Image src={radiograph.dataUrl} alt={`Preview of ${fileName}`} width={320} height={128} unoptimized className="mb-3 max-h-32 w-auto max-w-full rounded object-contain" />
+            <Image src={radiograph.dataUrl} alt={`Preview of ${fileName}`} width={320} height={128} unoptimized className="mb-3 max-h-32 w-auto max-w-full rounded object-contain shadow-xs" />
           ) : (
-            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-teal-700 shadow-sm">
+            <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-teal-700 shadow-sm border border-teal-100">
               <Icon name="plus" size={20} />
             </span>
           )}
@@ -1043,13 +1043,13 @@ export default function CaseForm() {
       </section>
 
       {errors.submit && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm leading-5 text-red-800">
+        <p role="alert" className="glass-card-subtle glass-tint-rose rounded-lg border border-rose-300 px-4 py-3 text-sm leading-5 text-rose-900 shadow-xs">
           {errors.submit}
         </p>
       )}
 
       {/* Form Action Controls */}
-      <div className="flex flex-col items-start justify-between gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-start justify-between gap-4 border-t border-slate-200/80 pt-6 sm:flex-row sm:items-center">
         <div>
           <p className="text-xs leading-5 text-slate-500">
             {editingCase
@@ -1064,7 +1064,7 @@ export default function CaseForm() {
               <button
                 type="button"
                 onClick={handleSaveWithoutAnalyze}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+                className="glass-button inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300/90 bg-white/80 px-4 text-xs font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800 shadow-xs"
               >
                 <Icon name="folder" size={16} />
                 Save Changes (Mark Stale)
@@ -1072,7 +1072,7 @@ export default function CaseForm() {
               <button
                 type="submit"
                 disabled={isAnalyzing}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-teal-700 px-5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800 disabled:cursor-wait disabled:opacity-75"
+                className="glass-button glass-shine inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-teal-700 px-5 text-xs font-semibold text-white shadow-xs transition hover:bg-teal-800 disabled:cursor-wait disabled:opacity-75"
               >
                 <Icon name="spark" size={16} />
                 {isAnalyzing ? "Re-analyzing..." : "Re-analyze with Dentarith"}
@@ -1083,7 +1083,7 @@ export default function CaseForm() {
               <button
                 type="button"
                 onClick={saveDraft}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-5 text-sm font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800"
+                className="glass-button inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300/90 bg-white/80 px-5 text-sm font-semibold text-slate-700 transition hover:border-teal-400 hover:text-teal-800 shadow-xs"
               >
                 <Icon name="folder" size={17} />
                 Save Draft
@@ -1091,7 +1091,7 @@ export default function CaseForm() {
               <button
                 type="submit"
                 disabled={isAnalyzing}
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-75"
+                className="glass-button glass-shine inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-slate-950 px-6 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-wait disabled:opacity-75 shadow-xs"
               >
                 <Icon name="spark" size={17} />
                 {isAnalyzing ? "Analyzing case..." : "Analyze Case"}
@@ -1124,10 +1124,10 @@ function SectionContainer({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.02)] sm:p-7 scroll-mt-24">
+    <section id={id} className="glass-card p-5 sm:p-7 scroll-mt-24">
       <div className="flex items-center justify-between">
         <div className="flex gap-3">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 text-xs font-bold text-teal-700">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50/90 text-xs font-bold text-teal-800 border border-teal-200/80 shadow-xs">
             {index}
           </span>
           <div>
@@ -1139,7 +1139,7 @@ function SectionContainer({
           <button
             type="button"
             onClick={onToggle}
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50"
+            className="glass-button rounded-lg border border-slate-200/80 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-white hover:text-slate-950"
           >
             {isOpen ? "Collapse" : "Expand (optional)"}
           </button>
@@ -1152,18 +1152,18 @@ function SectionContainer({
 
 function inputClass(error?: string) {
   return `w-full h-10 rounded-lg border ${
-    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-teal-600 focus:ring-teal-100"
-  } bg-white px-3 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2`;
+    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300/90 focus:border-teal-600 focus:ring-teal-500/20"
+  } bg-white/90 focus:bg-white px-3 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 shadow-xs`;
 }
 
 function selectClass(error?: string) {
   return `w-full h-10 rounded-lg border ${
-    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-teal-600 focus:ring-teal-100"
-  } bg-white px-3 text-xs text-slate-900 outline-none transition focus:ring-2`;
+    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300/90 focus:border-teal-600 focus:ring-teal-500/20"
+  } bg-white/90 focus:bg-white px-3 text-xs text-slate-900 outline-none transition focus:ring-2 shadow-xs`;
 }
 
 function textareaClass(error?: string) {
   return `w-full rounded-lg border ${
-    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300 focus:border-teal-600 focus:ring-teal-100"
-  } bg-white px-3 py-2 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 resize-y`;
+    error ? "border-red-400 focus:border-red-500 focus:ring-red-100" : "border-slate-300/90 focus:border-teal-600 focus:ring-teal-500/20"
+  } bg-white/90 focus:bg-white px-3 py-2 text-xs text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 resize-y shadow-xs`;
 }
